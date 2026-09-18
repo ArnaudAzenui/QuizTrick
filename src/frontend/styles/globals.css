@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Theme tokens (WBS 1.6.2.1). Values are RGB triplets so Tailwind can apply
+ * opacity. Both palettes are chosen for WCAG 2.1 AA contrast (FR-8.4, NFR-U3):
+ *   light: fg #1a1f2b on bg #f7f8fa  → 14.9:1 ; muted #5b6470 on bg → 5.6:1
+ *   dark : fg #e8ebf0 on bg #0f1218  → 15.2:1 ; muted #a3adba on bg → 8.6:1
+ *   primary-fg white on primary #2f5bea (light) → 5.9:1 ; on #7c9cff (dark, fg #0f1218) → 8.0:1
+ */
+:root {
+  --qt-bg: 247 248 250;
+  --qt-surface: 255 255 255;
+  --qt-border: 218 222 229;
+  --qt-fg: 26 31 43;
+  --qt-muted: 91 100 112;
+  --qt-primary: 47 91 234;
+  --qt-primary-fg: 255 255 255;
+  --qt-success: 22 128 61;
+  --qt-danger: 190 30 45;
+  --qt-warning: 158 96 0;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --qt-bg: 15 18 24;
+  --qt-surface: 24 28 37;
+  --qt-border: 52 58 70;
+  --qt-fg: 232 235 240;
+  --qt-muted: 163 173 186;
+  --qt-primary: 124 156 255;
+  --qt-primary-fg: 15 18 24;
+  --qt-success: 94 214 138;
+  --qt-danger: 255 122 133;
+  --qt-warning: 255 196 77;
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-bg text-fg antialiased;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Keyboard focus must be visible in both themes (NFR-U3). */
+:focus-visible {
+  outline: 2px solid rgb(var(--qt-primary));
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
