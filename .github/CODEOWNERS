@@ -1,0 +1,21 @@
+# QuizTrick code ownership — GitHub auto-requests review from the owners
+# of any folder a pull request touches, and branch protection can require
+# their approval before merge.
+#
+# NOTE: order matters — the LAST matching pattern wins.
+
+# Fallback: anything not claimed below (root configs, CI, tests, docs) -> Arnaud
+*                   @ArnaudAzenui
+
+# ---- Frontend: Hillary + Fardin ----
+/src/frontend/      @AgbeleHillary @mdfardinislamofficial
+/src/app/           @AgbeleHillary @mdfardinislamofficial
+
+# ---- Backend: Arnaud + Zay (listed after /src/app/ so it wins for the api subfolder) ----
+/src/app/api/       @ArnaudAzenui @Zay2003-16
+/src/backend/       @ArnaudAzenui @Zay2003-16
+/supabase/          @ArnaudAzenui @Zay2003-16
+
+# ---- The contract both teams code against: one owner from each side ----
+/src/shared/        @ArnaudAzenui @AgbeleHillary
+/docs/API.md        @ArnaudAzenui @AgbeleHillary
