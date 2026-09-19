@@ -4,8 +4,14 @@
 #
 # NOTE: order matters — the LAST matching pattern wins.
 
-# Fallback: anything not claimed below (root configs, CI, tests, docs) -> Arnaud
-*                   @ArnaudAzenui
+# Fallback: anything not claimed below (root configs, CI, docs). Two owners on
+# purpose: the PR author can never approve their own PR, so a single-owner rule
+# would leave that owner's PRs with no valid approver.
+*                   @ArnaudAzenui @Zay2003-16
+
+# Tests sit beside every feature, from either team — any one teammate (other
+# than the author) can approve.
+/tests/             @ArnaudAzenui @AgbeleHillary @Zay2003-16 @mdfardinislamofficial
 
 # ---- Frontend: Hillary + Fardin ----
 /src/frontend/      @AgbeleHillary @mdfardinislamofficial
