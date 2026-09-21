@@ -1,13 +1,29 @@
 import { LIMITS } from "../constants";
 
 /**
+ * Counts characters the way Postgres `char_length()` does — by code point.
+ *
+ * JavaScript's String.length counts UTF-16 units, so "😀" is 2 there and 1 in
+ * the database. Using .length here let a 100-emoji paste read as 200 characters,
+ * pass FR-2.4, and then get rejected by the `char_length(body) between 200 and
+ * 20000` check as a 500. Every character count that the database will also see
+ * has to come from this function.
+ */
+export function countCharacters(s: string): number {
+  return [...s].length;
+}
+
+/**
  * StudyText.clean() — FR-2.5: trim whitespace and strip non-printable
  * control characters (keeps \n and \t so paragraphs survive).
  */
 export function cleanStudyText(raw: string): string {
   // Keep \t (0x09), \n (0x0A), \r (0x0D); drop every other C0/C1 control character.
   const withoutControls = raw.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "");
-  return withoutControls.replace(/\r\n?/g, "\n").trim();
+  // An unpaired surrogate is not valid UTF-8, so Postgres rejects the insert
+  // outright. Paired ones (real emoji) are a single code point and don't match.
+  const withoutLoneSurrogates = withoutControls.replace(/\p{Surrogate}/gu, "");
+  return withoutLoneSurrogates.replace(/\r\n?/g, "\n").trim();
 }
 
 export type TextValidation =
@@ -20,7 +36,7 @@ export type TextValidation =
  */
 export function validateStudyText(raw: string): TextValidation {
   const cleaned = cleanStudyText(raw ?? "");
-  const charCount = cleaned.length;
+  const charCount = countCharacters(cleaned);
   if (charCount === 0) {
     return { ok: false, charCount, message: "Paste or upload some study text to get started." };
   }

@@ -37,13 +37,14 @@ The provider in `src/backend/services/ai/openai.provider.ts` speaks the OpenAI c
 
 `AI_API_KEY` is whichever vendor's key. If the free-tier budget is a concern for the usability tests, Gemini's free quota is usually the more generous of the two.
 
-Then apply the database schema: open Supabase → SQL Editor → paste `supabase/migrations/0001_initial_schema.sql` → Run. (Or use the Supabase CLI — see `supabase/README.md`.)
+Then apply the database schema: open Supabase → SQL Editor → paste `supabase/migrations/0001_initial_schema.sql` → Run, then do the same for `supabase/migrations/0002_harden_rls_and_constraints.sql`. **Run them in order** — 0002 closes gaps that 0001 recreates, so applying 0001 on its own afterwards undoes them. (Or use the Supabase CLI — see `supabase/README.md`.)
 
 In Supabase → Authentication → Providers, make sure **Email** is enabled. For quick local testing you may disable "Confirm email"; re-enable it before the usability tests.
 
 ```bash
 npm run dev      # http://localhost:3000
-npm run check    # typecheck + unit tests + production build
+npm run check    # typecheck + unit tests + production build (what CI runs)
+npm run test:db  # schema tests against a throwaway Postgres — needs Docker
 ```
 
 ## 3. Deploy to Vercel (WBS 1.3.4.3 / 1.3.4.4)
@@ -58,13 +59,15 @@ npm run check    # typecheck + unit tests + production build
 
 ## 4. CI
 
-`.github/workflows/ci.yml` runs lint, typecheck, unit tests and a production build on every PR and push to `main`. Protect `main` in GitHub settings so the check must pass before merge.
+`.github/workflows/ci.yml` runs two jobs on every PR and push to `main`: **check** (lint, typecheck, unit tests, production build) and **schema** (`npm run test:db` — applies the migrations to a throwaway Postgres and asserts ~80 rules about ownership, the atomic RPCs and every constraint). Protect `main` in GitHub settings so both must pass before merge.
 
 ## 5. Common problems
 
 | Symptom | Fix |
 |---|---|
 | `Missing required environment variable …` at startup | Copy `.env.example` → `.env.local` and fill it in; restart `npm run dev`. |
-| Login works but every page says "could not be found" | The schema was not applied, or the account predates the migration so the `handle_new_user` trigger never ran for it. Re-run `0001_initial_schema.sql` — it is safe to re-run and backfills a profile + preferences row for every existing user. |
+| Login works but every page says "could not be found" | The schema was not applied, or the account predates the migration so the `handle_new_user` trigger never ran for it. Re-run **both** migrations in order (`0001` then `0002`) — they are safe to re-run and backfill a profile + preferences row for every existing user. Running `0001` alone would revert `0002`. |
 | Generation returns "unusable quiz" repeatedly | Try a different `AI_MODEL`, or inspect server logs for `[generator] attempt N rejected: …` to see which validation rule the model breaks. |
 | Generation returns 401 from the provider | `AI_API_KEY` is wrong or missing on Vercel. |
+| Registration fails with an opaque error after applying the schema | `0001` was applied (or re-applied) without `0002`. Run `0002_harden_rls_and_constraints.sql`. |
+| Supabase calls fail in the browser with a Content-Security-Policy error | The CSP in `next.config.mjs` allows `*.supabase.co`. If your project is on a custom domain, add it to `connect-src` there. |

@@ -16,11 +16,22 @@ describe("formatElapsed (FR-7.1 h:mm:ss)", () => {
     expect(formatElapsed(12.9)).toBe("0:00:12");
     expect(formatElapsed(-5)).toBe("0:00:00");
   });
+  // The timer re-renders this every second from Date arithmetic; one bad
+  // subtraction used to put "NaN:NaN:NaN" on screen.
+  it("shows zero rather than NaN for non-finite input", () => {
+    expect(formatElapsed(Number.NaN)).toBe("0:00:00");
+    expect(formatElapsed(Number.POSITIVE_INFINITY)).toBe("0:00:00");
+  });
 });
 
 describe("formatScore", () => {
   it("renders a rounded percent", () => {
     expect(formatScore(80)).toBe("80%");
     expect(formatScore(66.6)).toBe("67%");
+  });
+  it("never renders NaN, and clamps to 0–100", () => {
+    expect(formatScore(Number.NaN)).toBe("0%");
+    expect(formatScore(-10)).toBe("0%");
+    expect(formatScore(150)).toBe("100%");
   });
 });
