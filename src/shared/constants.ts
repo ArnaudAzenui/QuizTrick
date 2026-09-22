@@ -9,6 +9,8 @@ export const LIMITS = {
   EMAIL_MAX: 254,
   PASSWORD_MIN: 8,
   PASSWORD_MAX: 72,
+  /** FR-1.6. Mirrors the `profiles_display_name_len` check in migration 0002. */
+  DISPLAY_NAME_MAX: 60,
 
   /** FR-2.4 */
   TEXT_MIN_CHARS: 200,
@@ -46,6 +48,14 @@ export const LIMITS = {
 
   /** FR-7.4 — one timer session can't exceed a day; anything longer is a stuck client. */
   SESSION_MAX_SECONDS: 24 * 60 * 60,
+
+  /**
+   * How far ahead of the server a browser clock may be before we stop believing
+   * its timestamps. Student laptops are routinely a minute or two out, and
+   * rejecting a finished study session over that would be its own bug — but a
+   * timestamp hours in the future is fabricated, not skewed.
+   */
+  CLOCK_SKEW_MS: 5 * 60 * 1000,
 
   /** Mirrors the `question_count between 1 and 30` check in the DB schema. */
   QUIZ_MAX_QUESTIONS: 30,

@@ -24,3 +24,16 @@ jobs:
           # Build only needs placeholders; real values live in Vercel (SEC-3).
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+
+  # Separate job: it needs a Postgres container, and it only has anything to say
+  # when supabase/ changes. A broken migration is invisible to the checks above —
+  # they never touch a database — and is the one kind of mistake we can't undo
+  # once the team has applied it to the shared Supabase project.
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run test:db # Docker is preinstalled on ubuntu-latest runners

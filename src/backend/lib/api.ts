@@ -17,8 +17,14 @@ export function fail(err: unknown) {
     );
   }
   if (err instanceof ZodError) {
+    // First issue wins per field. Zod can report several problems for one field
+    // (too long AND not an email); overwriting left `message` quoting one of
+    // them and `fields.email` the other, so the form and the banner disagreed.
     const fields: Record<string, string> = {};
-    for (const issue of err.issues) fields[issue.path.join(".") || "_"] = issue.message;
+    for (const issue of err.issues) {
+      const key = issue.path.join(".") || "_";
+      if (!(key in fields)) fields[key] = issue.message;
+    }
     const first = err.issues[0]?.message ?? "Please check the highlighted fields.";
     return NextResponse.json<ApiResult<never>>(
       { ok: false, error: { code: "VALIDATION", message: first, fields } },
