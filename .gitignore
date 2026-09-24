@@ -17,3 +17,8 @@ coverage/
 .DS_Store
 .vercel
 *.tsbuildinfo
+.next-dev/
+.next/
+.next-dev/
+.next/
+node_modules/
