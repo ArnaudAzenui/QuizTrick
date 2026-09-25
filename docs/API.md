@@ -21,6 +21,13 @@ The same rules are enforced again in the database (`supabase/migrations/0002`), 
 | `POST /api/auth/login` | `{ email, password }` | `{ userId, email }` + sets session cookie | FR-1.3 |
 | `POST /api/auth/logout` | — | `{ loggedOut: true }` | FR-1.3, SEC-8 |
 | `POST /api/auth/reset-password` | `{ email }` | `{ sent: true }` (always) | FR-1.7 |
+| `POST /api/auth/update-password` | `{ password }` (8–72) | `{ updated: true }` | FR-1.7 |
+
+`register` answers `CONFLICT` (409) for an address that already has an account. Supabase reports a duplicate two different ways depending on whether email confirmation is enabled — an explicit error, or a success carrying an obfuscated user — and both are mapped to the same 409, so the answer does not change when that setting does.
+
+`update-password` is not public: it is authenticated by the session that `GET /auth/callback` establishes from the emailed link, and takes no current password because following the link already proved control of the mailbox. `reset-password` stays silent about whether an address is registered, so it can't be used to enumerate accounts — unlike `register`, where a clear message was judged worth the trade.
+
+`GET /auth/callback` is a page route, not an API one: it accepts either `?code=` (PKCE) or `?token_hash=&type=`, sets the session cookie and redirects to `?next=` — rejecting any `next` that is not a same-origin path. A dead link lands on `/login?error=link_expired|link_invalid` rather than a blank page.
 
 ## Profile
 
