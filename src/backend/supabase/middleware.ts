@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { PROTECTED_PREFIXES, ROUTES } from "@shared/constants";
+import { sessionCookieOptions } from "./cookies";
 
 /**
  * Refreshes the Supabase session cookie on every request and enforces
@@ -40,7 +41,7 @@ export async function updateSession(request: NextRequest) {
       setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
         response = NextResponse.next({ request });
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, sessionCookieOptions(options)));
       },
     },
   });

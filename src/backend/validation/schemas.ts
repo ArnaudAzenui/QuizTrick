@@ -69,6 +69,13 @@ export const loginSchema = z.object(
 
 export const resetPasswordSchema = z.object({ email: emailSchema }, objectBody);
 
+/**
+ * Setting a new password after following a reset link. No current password:
+ * the caller has already proved control of the mailbox, which is the whole
+ * point of the reset flow (FR-1.7).
+ */
+export const updatePasswordSchema = z.object({ password: passwordSchema }, objectBody);
+
 export const profileUpdateSchema = z.object(
   { displayName: displayNameSchema.min(1, "Display name cannot be empty.") },
   objectBody,

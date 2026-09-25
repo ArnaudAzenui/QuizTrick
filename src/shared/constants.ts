@@ -87,7 +87,22 @@ export const ROUTES = {
   tasks: "/tasks",
   timer: "/timer",
   profile: "/profile",
+  /** Where Supabase's emailed links land; exchanges the code for a session (FR-1.7). */
+  authCallback: "/auth/callback",
+  /** Where a user types a new password after following a reset link (FR-1.7). */
+  updatePassword: "/update-password",
 } as const;
 
 /** Paths that require a signed-in user (FR-1.4). Everything else is public. */
-export const PROTECTED_PREFIXES = ["/dashboard", "/texts", "/quizzes", "/history", "/tasks", "/timer", "/profile"];
+export const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/texts",
+  "/quizzes",
+  "/history",
+  "/tasks",
+  "/timer",
+  "/profile",
+  // Reached only with the session /auth/callback just established from a reset
+  // link. Guarded so the form can't be opened, or posted to, without one.
+  "/update-password",
+];

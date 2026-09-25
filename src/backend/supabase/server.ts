@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { env } from "../lib/env";
+import { sessionCookieOptions } from "./cookies";
 
 /**
  * Supabase client bound to the signed-in user's cookie session.
@@ -16,7 +17,7 @@ export async function createUserClient() {
       },
       setAll(cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }>) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, sessionCookieOptions(options)));
         } catch {
           // Called from a Server Component: cookies are read-only there.
           // The middleware refreshes the session instead.

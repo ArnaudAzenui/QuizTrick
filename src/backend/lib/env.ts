@@ -12,6 +12,14 @@ export const env = {
   supabaseUrl: () => required("NEXT_PUBLIC_SUPABASE_URL"),
   supabaseAnonKey: () => required("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   supabaseServiceRoleKey: () => required("SUPABASE_SERVICE_ROLE_KEY"),
+  /**
+   * Origin used to build the links Supabase emails out (confirmation, password
+   * reset). Optional on purpose: when it is unset Supabase falls back to the
+   * Site URL configured in the dashboard, which is a working answer. Making it
+   * required would mean a missing Vercel variable takes registration down over
+   * a setting that only decorates an email link (docs/SETUP.md §3).
+   */
+  appUrl: (): string | undefined => process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") || undefined,
   ai: () => ({
     provider: process.env.AI_PROVIDER ?? "openai",
     apiKey: required("AI_API_KEY"),

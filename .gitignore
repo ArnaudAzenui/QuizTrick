@@ -3,6 +3,7 @@ node_modules/
 
 # next.js
 .next/
+.next-dev/
 out/
 next-env.d.ts
 
@@ -17,8 +18,3 @@ coverage/
 .DS_Store
 .vercel
 *.tsbuildinfo
-.next-dev/
-.next/
-.next-dev/
-.next/
-node_modules/

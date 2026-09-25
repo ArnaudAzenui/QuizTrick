@@ -1,12 +1,10 @@
-import { notImplemented } from "@backend/lib/not-implemented";
+import { handle, ok } from "@backend/lib/api";
+import { logoutUser } from "@backend/services/auth.service";
 
 /**
  * POST /api/auth/logout - -> { loggedOut: true }
  *
  * Full contract: docs/API.md - FR-1.3, SEC-8
- * Owner: backend (Arnaud + Isaiah). TODO: implement via src/backend/services + validation/schemas.
+ * POST rather than GET so a prefetch or an <img> tag can't sign a user out.
  */
-
-export async function POST() {
-  return notImplemented();
-}
+export const POST = handle(async () => ok(await logoutUser()));
