@@ -22,7 +22,7 @@ const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
 afterAll(() => quiet.mockRestore());
 
 const signedIn = { data: { user: { id: "user-1", email: "student@school.edu" } }, error: null };
-const credentials = { email: "student@school.edu", password: "password123" };
+const credentials = { email: "student@school.edu", password: "password123", displayName: "Student" };
 
 /** Runs fn and returns the AppError it threw, failing the test if it didn't throw. */
 async function caught(fn: () => Promise<unknown>): Promise<AppError> {
