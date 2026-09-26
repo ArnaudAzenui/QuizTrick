@@ -30,12 +30,12 @@ describe("registerSchema (FR-1.2)", () => {
     }
   });
   it("lower-cases and trims the email", () => {
-    const r = registerSchema.parse({ email: "  Student@Example.com ", password: "password123" });
+    const r = registerSchema.parse({ email: "  Student@Example.com ", password: "password123", displayName: "Student" });
     expect(r.email).toBe("student@example.com");
   });
   it("explains a missing field instead of saying 'Required'", () => {
     const msgs = messages(registerSchema, {});
-    expect(msgs).toHaveLength(2);
+    expect(msgs).toHaveLength(3);
     for (const m of msgs) expect(m).not.toMatch(DEVELOPER_SPEAK);
   });
   it("explains a body that isn't an object at all", () => {

@@ -1,16 +1,28 @@
-/**
- * User profile (WBS 1.4.1, owner: Isaiah) - NOT IMPLEMENTED YET.
- *
- * Functions to build here:
- *   - getProfile (FR-1.6)
- *   - updateDisplayName (FR-1.6)
- *
- * display_name is the ONLY column a user may write (migration 0002 revoked the
- * rest at the column level). Changing an email is an auth operation —
- * supabase.auth.updateUser() — not an update to public.profiles.
- *
- * Errors: throw AppError (src/backend/lib/errors.ts); routes wrap handlers with handle() from lib/api.ts.
- * Data access: user-owned rows via supabase/server.ts (RLS); answer keys + atomic RPCs via supabase/admin.ts ONLY.
- */
+import { toProfile } from "@backend/db/rows";
+import { AppError } from "@backend/lib/errors";
+import { createUserClient } from "@backend/supabase/server";
+import { profileUpdateSchema } from "@backend/validation/schemas";
+import { getCurrentUser } from "./auth.service";
 
-export {};
+const columns = "id, email, display_name, created_at";
+
+export async function getProfile() {
+  const { userId } = await getCurrentUser();
+  const client = await createUserClient();
+  const { data, error } = await client.from("profiles").select(columns).eq("id", userId).maybeSingle();
+  if (error) throw AppError.internal("We couldn't load your profile. Please try again.");
+  if (!data) throw AppError.notFound("Your profile");
+  return toProfile(data);
+}
+
+export async function updateDisplayName(input: { displayName: string }) {
+  const { userId } = await getCurrentUser();
+  const { displayName } = profileUpdateSchema.parse(input);
+  const client = await createUserClient();
+  // RLS applies; never accept an owner ID from the caller.
+  const { data, error } = await client.from("profiles")
+    .update({ display_name: displayName }).eq("id", userId).select(columns).maybeSingle();
+  if (error) throw AppError.internal("We couldn't save your display name. Please try again.");
+  if (!data) throw AppError.notFound("Your profile");
+  return toProfile(data);
+}

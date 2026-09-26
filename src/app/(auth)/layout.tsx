@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between px-6 py-4">
-        <Link href={ROUTES.home} className="text-lg font-semibold">
+        <Link href={ROUTES.home} className="text-[30px] font-semibold">
           QuizTrick
         </Link>
       </header>

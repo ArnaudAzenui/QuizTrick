@@ -52,7 +52,7 @@ export const registerSchema = z.object(
   {
     email: emailSchema,
     password: passwordSchema,
-    displayName: displayNameSchema.optional(),
+    displayName: displayNameSchema.min(1, "Enter a display name."),
   },
   objectBody,
 );
