@@ -10,7 +10,7 @@ export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center justify-between px-6 py-4">
-        <span className="text-lg font-semibold">QuizTrick</span>
+        <span className="text-[22px] font-semibold">QuizTrick</span>
         <Link href={ROUTES.login} className="text-sm text-primary underline-offset-2 hover:underline">
           Log in
         </Link>

@@ -57,7 +57,7 @@ describe("parseBody() via handle()", () => {
   const route = handle(async (req: Request) => Response.json(await parseBody(req, registerSchema)));
 
   it("accepts a valid body", async () => {
-    const res = await route(jsonRequest(JSON.stringify({ email: "a@b.co", password: "password123" })), {});
+    const res = await route(jsonRequest(JSON.stringify({ email: "a@b.co", password: "password123", displayName: "Student" })), {});
     expect(res.status).toBe(200);
   });
 

@@ -17,7 +17,7 @@ The same rules are enforced again in the database (`supabase/migrations/0002`), 
 
 | Method & path | Body | Returns | Req. |
 |---|---|---|---|
-| `POST /api/auth/register` | `{ email, password, displayName? }` | `{ userId, needsEmailConfirmation }` (201) | FR-1.1, FR-1.2 |
+| `POST /api/auth/register` | `{ email, password, displayName }` | `{ userId, needsEmailConfirmation }` (201) | FR-1.1, FR-1.2 |
 | `POST /api/auth/login` | `{ email, password }` | `{ userId, email }` + sets session cookie | FR-1.3 |
 | `POST /api/auth/logout` | — | `{ loggedOut: true }` | FR-1.3, SEC-8 |
 | `POST /api/auth/reset-password` | `{ email }` | `{ sent: true }` (always) | FR-1.7 |

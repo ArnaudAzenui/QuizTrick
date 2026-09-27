@@ -4,9 +4,15 @@ vi.mock("@backend/supabase/server", () => ({ createUserClient: async () => ({ au
 import { POST as login } from "@/app/api/auth/login/route";
 import { POST as register } from "@/app/api/auth/register/route";
 const request = (body: unknown) => new Request("http://localhost/api/auth/login", { method: "POST", body: JSON.stringify(body) });
-const credentials = { email: "student@example.com", password: "password123" };
+const credentials = { email: "student@example.com", password: "password123", displayName: "Student" };
 beforeEach(() => vi.clearAllMocks());
 describe("authentication endpoints", () => {
+  it.each([undefined, "", "   "])("rejects missing or blank display name %j before signup", async (displayName) => {
+    const response = await register(request({ ...credentials, displayName }), undefined);
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.fields.displayName).toBeTruthy();
+    expect(signUp).not.toHaveBeenCalled();
+  });
   it("rejects invalid input before contacting Supabase", async () => {
     expect((await login(request({ email: "invalid", password: "" }), undefined)).status).toBe(400);
     expect(signInWithPassword).not.toHaveBeenCalled();
@@ -31,5 +37,16 @@ describe("authentication endpoints", () => {
     const response = await register(request(credentials), undefined);
     expect(response.status).toBe(201);
     expect((await response.json()).data.needsEmailConfirmation).toBe(true);
+  });
+  it("allows dashboard navigation when signup creates a session", async () => {
+    signUp.mockResolvedValue({ data: { user: { id: "user-1" }, session: { access_token: "secret" } }, error: null });
+    const response = await register(request(credentials), undefined);
+    expect((await response.json()).data.needsEmailConfirmation).toBe(false);
+  });
+  it("returns duplicate email errors under the email field", async () => {
+    signUp.mockResolvedValue({ data: {}, error: { code: "user_already_exists" } });
+    const response = await register(request(credentials), undefined);
+    expect(response.status).toBe(409);
+    expect((await response.json()).error.fields.email).toBeTruthy();
   });
 });

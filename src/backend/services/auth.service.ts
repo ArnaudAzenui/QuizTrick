@@ -60,7 +60,7 @@ export async function registerUser(input: z.infer<typeof registerSchema>) {
   const client = await createUserClient();
   const { data, error } = await client.auth.signUp({
     email: input.email, password: input.password,
-    options: { data: { display_name: input.displayName ?? "" }, emailRedirectTo: callbackUrl() },
+    options: { data: { display_name: input.displayName }, emailRedirectTo: callbackUrl() },
   });
   if (error?.status === 429) throw AppError.rateLimited("Too many attempts. Please try again later.");
   if (error?.code === "weak_password") {
