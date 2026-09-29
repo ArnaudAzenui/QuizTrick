@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { api, ApiClientError, errorMessage } from "@frontend/lib/api-client";
 import { FormField } from "@frontend/components/FormField";
 import { LIMITS } from "@shared/constants";
 import type { UserProfile } from "@shared/types";
 
 export default function Page() {
+  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile>();
   const [name, setName] = useState("");
   const [error, setError] = useState<string>();
@@ -31,6 +33,9 @@ export default function Page() {
     try {
       const data = await api.patch<UserProfile>("/api/profile", { displayName: name });
       setProfile(data); setName(data.displayName); setSaved(true);
+      // The "Signed in as" name in the app shell is server-rendered, so it
+      // keeps showing the old one until the server components re-run.
+      router.refresh();
     } catch (err) {
       if (err instanceof ApiClientError && err.fields?.displayName) setFieldError(err.fields.displayName);
       else setError(errorMessage(err));

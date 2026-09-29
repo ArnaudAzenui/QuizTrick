@@ -16,7 +16,9 @@ export function LogoutButton() {
       window.location.replace(ROUTES.login);
     } catch (err) { setError(errorMessage(err)); setBusy(false); }
   }
-  return <div className="ml-auto">
+  // Alignment is the caller's business: the app shell groups this with the
+  // signed-in name, and ml-auto here would push the two apart.
+  return <div>
     <button type="button" onClick={logout} disabled={busy} className="rounded-lg border border-border px-3 py-2 disabled:opacity-60">{busy ? "Logging out..." : "Log out"}</button>
     {error && <p role="alert" className="mt-1 text-sm text-danger">{error}</p>}
   </div>;
