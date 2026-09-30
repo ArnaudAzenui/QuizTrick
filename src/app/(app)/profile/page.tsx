@@ -2,9 +2,10 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api, ApiClientError, errorMessage } from "@frontend/lib/api-client";
 import { FormField } from "@frontend/components/FormField";
-import { LIMITS } from "@shared/constants";
+import { LIMITS, ROUTES } from "@shared/constants";
 import type { UserProfile } from "@shared/types";
 
 export default function Page() {
@@ -53,6 +54,13 @@ export default function Page() {
         <button type="submit" disabled={busy} className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-fg disabled:opacity-60">{busy ? "Saving..." : "Save display name"}</button>
         {saved && <p role="status">Your display name has been updated.</p>}
       </form>
+      <section aria-labelledby="password-heading" className="mt-8 border-t border-border pt-6">
+        <h2 id="password-heading" className="text-lg font-semibold">Password</h2>
+        <p className="mt-2 text-sm text-muted">To change your password, request a reset link by email.</p>
+        <Link href={ROUTES.forgotPassword} className="mt-3 inline-block rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium text-primary hover:underline">
+          Change password
+        </Link>
+      </section>
     </>}
   </div>;
 }

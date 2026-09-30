@@ -63,10 +63,10 @@ export function AuthForm({ mode, next, linkError }: { mode: Mode; next?: string;
       <fieldset disabled={busy} className="space-y-4">
         {mode === "register" && <FormField id="displayName" name="displayName" label="Display name" autoComplete="nickname" required maxLength={LIMITS.DISPLAY_NAME_MAX} error={fields.displayName} />}
         <FormField id="email" name="email" label="Email" type="email" autoComplete="email" required maxLength={LIMITS.EMAIL_MAX} error={fields.email} />
-        {mode !== "reset" && <FormField id="password" name="password" label="Password" type="password" required
+        {mode !== "reset" && <FormField id="password" name="password" label="Password" type="password" revealPassword={mode === "register"} required
           autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={mode === "register" ? LIMITS.PASSWORD_MIN : 1}
           maxLength={mode === "register" ? LIMITS.PASSWORD_MAX : undefined} error={fields.password} />}
-        {mode === "register" && <FormField id="confirmPassword" name="confirmPassword" label="Confirm password" type="password" required
+        {mode === "register" && <FormField id="confirmPassword" name="confirmPassword" label="Confirm password" type="password" revealPassword required
           autoComplete="new-password" maxLength={LIMITS.PASSWORD_MAX} error={fields.confirmPassword} />}
         {mode === "register" && <p className="text-xs text-muted">Use at least {LIMITS.PASSWORD_MIN} characters for your password.</p>}
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}
