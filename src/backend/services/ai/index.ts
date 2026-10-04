@@ -1,11 +1,34 @@
 /**
- * AI provider selection (NFR-M3) - NOT IMPLEMENTED YET.
+ * AI provider selection (NFR-M3). The rest of the backend calls
+ * getAiProvider() and only ever sees the AiProvider interface.
  *
- * Functions to build here:
- *   - getAiProvider() - returns the AiProvider chosen by env AI_PROVIDER (see provider.ts for the interface).
- *
- * Errors: throw AppError (src/backend/lib/errors.ts); routes wrap handlers with handle() from lib/api.ts.
- * Data access: user-owned rows via supabase/server.ts (RLS); answer keys + atomic RPCs via supabase/admin.ts ONLY.
+ * Adding a vendor: write a provider file in this folder and add a case below.
+ * Vendors with an OpenAI-compatible endpoint (Gemini included) need no new
+ * code — keep AI_PROVIDER=openai and set AI_BASE_URL (docs/SETUP.md).
  */
+import { AppError } from "@backend/lib/errors";
+import { env } from "@backend/lib/env";
+import { createOpenAiProvider } from "./openai.provider";
+import type { AiProvider } from "./provider";
 
-export {};
+export type { AiProvider, AiCompletionRequest } from "./provider";
+
+export function getAiProvider(): AiProvider {
+  let config: ReturnType<typeof env.ai>;
+  try {
+    config = env.ai();
+  } catch (err) {
+    // A missing AI_API_KEY is a deployment problem; the student just sees the
+    // generator as unavailable rather than a generic crash.
+    console.error("[ai] provider is not configured", err instanceof Error ? err.message : err);
+    throw AppError.aiUnavailable();
+  }
+
+  switch (config.provider) {
+    case "openai":
+      return createOpenAiProvider(config);
+    default:
+      console.error("[ai] unknown AI_PROVIDER", config.provider);
+      throw AppError.aiUnavailable();
+  }
+}
