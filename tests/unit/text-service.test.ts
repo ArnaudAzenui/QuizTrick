@@ -19,6 +19,13 @@ const query = vi.hoisted(() => {
 });
 
 vi.mock("@backend/supabase/server", () => ({ createUserClient: async () => ({ auth, from: query.from }) }));
+// quiz.service also imports the admin client (for getQuizForTaking). Nothing
+// under test here may use it — RLS alone scopes these reads — so a call fails loudly.
+vi.mock("@backend/supabase/admin", () => ({
+  createAdminClient: () => {
+    throw new Error("the admin client must not be used by the text or quiz-list services");
+  },
+}));
 
 import { AppError } from "@backend/lib/errors";
 import { createText, deleteText, getText, listTexts } from "@backend/services/text.service";
