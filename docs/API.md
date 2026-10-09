@@ -62,7 +62,7 @@ Failure modes: `RATE_LIMITED` after 20/hour; `AI_UNAVAILABLE` on network/timeout
 
 | Method & path | Body | Returns | Req. |
 |---|---|---|---|
-| `GET /api/quizzes/:id` | — | `QuizForTaking` — `questions[]` **without** `correctOption` / `expectedAnswer` | FR-4.1 |
+| `GET /api/quizzes/:id` | — | `QuizForTaking` — `questions[]` in `position` order, **without** `correctOption` / `expectedAnswer`. Another user's quiz is `NOT_FOUND`, not `FORBIDDEN`, so the API never confirms that an id exists | FR-4.1 |
 | `DELETE /api/quizzes/:id` | — | `{ deleted: true }` | SEC-10 |
 | `POST /api/quizzes/:id/attempts` | `{ startedAt?, answers: [{ questionId, response }] }` — MCQ response is the option index as a string (`"0"`–`"3"`); short answer ≤ 200 chars; each `questionId` at most once (case-insensitive). Unanswered questions are graded as incorrect. A `startedAt` in the future is ignored rather than rejected, so a wrong device clock can't cost a student their attempt. | `Attempt` (201) with `score` 0–100 | FR-4.3–4.5, NFR-R3 |
 | `GET /api/attempts/:id` | — | `AttemptReview` — includes correct answers and per-question `isCorrect` | FR-4.6 |

@@ -7,6 +7,7 @@ import type {
   Attempt,
   AnswerRecord,
   Preference,
+  PublicQuestion,
   Question,
   Quiz,
   StudySession,
@@ -46,6 +47,8 @@ export interface QuestionRow {
   correct_option: number | null;
   expected_answer: string | null;
 }
+/** A question row read for the taking screen: the answer-key columns are never selected. */
+export type PublicQuestionRow = Omit<QuestionRow, "correct_option" | "expected_answer">;
 export interface AttemptRow {
   id: string;
   owner_id: string;
@@ -119,6 +122,20 @@ export const toQuestion = (r: QuestionRow): Question => ({
   options: Array.isArray(r.options) ? r.options : [],
   correctOption: r.correct_option,
   expectedAnswer: r.expected_answer,
+});
+
+/**
+ * Question.withoutAnswerKey() (SDD decision 2). Built field by field rather than
+ * by dropping the key fields, so a field added to Question later stays server-side
+ * until someone decides the taking screen should see it.
+ */
+export const toPublicQuestion = (r: PublicQuestionRow): PublicQuestion => ({
+  questionId: r.id,
+  quizId: r.quiz_id,
+  position: r.position,
+  type: r.type,
+  text: r.text,
+  options: Array.isArray(r.options) ? r.options : [],
 });
 
 export const toAttempt = (r: AttemptRow): Attempt => ({
