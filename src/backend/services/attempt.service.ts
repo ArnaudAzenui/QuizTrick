@@ -4,8 +4,9 @@
  * Functions to build here:
  *   - submitAttempt - atomic: grade server-side with answer keys, store attempt + answers + score in one transaction/RPC (FR-4.5, NFR-R3)
  *       The submit_attempt RPC REQUIRES exactly one record per question of the quiz, all belonging to that quiz.
- *       So: load all questions (admin client), grade every one — unanswered => { response: "", is_correct: false } —
- *       and pass the full list.
+ *       So: load all questions (admin client) and pass them with the submitted answers to gradeAttempt
+ *       (grading.service.ts). It returns one record per question in order, unanswered => { response: "", isCorrect: false },
+ *       plus the integer score; map isCorrect -> is_correct and pass the full list.
  *       Error codes (migration 0002 narrowed these to exactly three):
  *         P0002 -> AppError.notFound("That quiz")   — quiz missing or not the caller's
  *         23503 -> AppError.validation(...)          — an answer names a question from another quiz
