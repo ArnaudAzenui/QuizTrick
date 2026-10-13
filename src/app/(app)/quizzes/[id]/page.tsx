@@ -1,5 +1,11 @@
-import { Placeholder } from "@frontend/components/Placeholder";
+import { QuizRunner } from "@frontend/components/quiz/QuizRunner";
 
-export default function Page() {
-  return <Placeholder title="Take quiz" note="One question at a time with navigation; answers editable until submit." refs="FR-4.1, FR-4.2 | WBS 1.4.4.1" owner="Frontend" />;
+/** Take a quiz: one question at a time, answers editable until submit (FR-4.1, FR-4.2, WBS 1.4.4.1). */
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return (
+    <div className="mx-auto max-w-2xl">
+      <QuizRunner quizId={id} />
+    </div>
+  );
 }
