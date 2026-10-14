@@ -81,6 +81,9 @@ export const profileUpdateSchema = z.object(
   objectBody,
 );
 
+/** A row id from a URL segment. Services treat a malformed one as not found. */
+export const idSchema = z.string().uuid();
+
 export const createTextSchema = z.object(
   {
     // Normalised to null rather than "": `study_texts.title` is nullable and an

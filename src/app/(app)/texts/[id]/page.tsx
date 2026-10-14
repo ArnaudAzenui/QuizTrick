@@ -1,5 +1,11 @@
-import { Placeholder } from "@frontend/components/Placeholder";
+import { TextDetail } from "@frontend/components/texts/TextDetail";
 
-export default function Page() {
-  return <Placeholder title="Text detail" note="View a saved text; generate (or regenerate) a quiz from it with a progress indicator." refs="FR-3.1 - FR-3.9 | WBS 1.4.3" owner="Arnaud (pipeline) + frontend" />;
+/** One saved text: view it and generate a quiz from it (FR-3.1 - FR-3.9, WBS 1.4.3). */
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return (
+    <div className="mx-auto max-w-3xl">
+      <TextDetail textId={id} />
+    </div>
+  );
 }
