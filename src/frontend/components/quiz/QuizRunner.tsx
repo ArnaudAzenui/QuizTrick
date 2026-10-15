@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, errorMessage } from "@frontend/lib/api-client";
 import { LIMITS, ROUTES } from "@shared/constants";
 import type { Attempt, QuizForTaking } from "@shared/types";
-import { buildAttemptAnswers, countAnswered, isAnswered, optionLetter, type AnswerMap } from "./quiz-runner";
+import { countAnswered, isAnswered, leavesQuiz, optionLetter, submitAttempt, type AnswerMap } from "./quiz-runner";
+
+const LEAVE_MESSAGE = "You have answers you haven't submitted. Leave this quiz? Your answers will be lost.";
 
 type Load = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: QuizForTaking };
 
@@ -16,9 +18,14 @@ type Load = { state: "loading" } | { state: "error"; message: string } | { state
  * Loads GET /api/quizzes/:id (questions arrive without answer keys), shows one
  * question at a time with Previous / Next, and keeps every answer in state keyed
  * by question id so it stays editable until Submit. Submit posts to
- * POST /api/quizzes/:id/attempts and opens the results page. Until that route
- * lands it answers "not implemented yet", which is shown like any other error,
- * with the answers kept so the student can try again.
+ * POST /api/quizzes/:id/attempts and opens /quizzes/[id]/results/[attemptId].
+ * If the request fails (including "not implemented yet" before the route lands)
+ * the message is shown and the answers are kept so the student can try again.
+ *
+ * Leaving with unsubmitted answers asks first, both for reload / closing the tab
+ * (beforeunload) and for in-app links like the nav bar. Enter never submits the
+ * quiz: it moves to the next question, and on the last one the student has to
+ * press Submit quiz themselves.
  */
 export function QuizRunner({ quizId }: { quizId: string }) {
   const router = useRouter();
@@ -55,8 +62,37 @@ export function QuizRunner({ quizId }: { quizId: string }) {
       event.preventDefault();
       event.returnValue = "";
     };
+    // In-app links (nav bar, logo, "Back to my texts") change the page without a
+    // reload, so beforeunload never fires for them. Catch the click first, in the
+    // capture phase, before Next's <Link> handles it.
+    const guardLinks = (event: MouseEvent) => {
+      if (submitted.current || event.defaultPrevented) return;
+      const link = (event.target as Element | null)?.closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement)) return;
+      const click = {
+        href: link.href,
+        target: link.getAttribute("target"),
+        download: link.hasAttribute("download"),
+        button: event.button,
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+      };
+      if (!leavesQuiz(click, window.location.href)) return;
+      if (window.confirm(LEAVE_MESSAGE)) {
+        submitted.current = true; // they chose to leave, so don't ask again on the way out
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
+    document.addEventListener("click", guardLinks, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", guardLinks, true);
+    };
   }, [hasAnswers]);
 
   if (load.state === "loading") {
@@ -122,17 +158,29 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     setSubmitting(true);
     setSubmitError(undefined);
     try {
-      const attempt = await api.post<Attempt>(`/api/quizzes/${quizId}/attempts`, {
-        startedAt: startedAt.current || undefined,
-        answers: buildAttemptAnswers(questions, answers),
-      });
+      const resultsUrl = await submitAttempt(
+        (path, body) => api.post<Attempt>(path, body),
+        quizId,
+        questions,
+        answers,
+        startedAt.current,
+      );
       submitted.current = true;
-      router.push(ROUTES.results(quizId, attempt.attemptId));
+      router.push(resultsUrl);
     } catch (err) {
       setSubmitError(errorMessage(err, "We couldn't submit your quiz. Your answers are still here, so please try again."));
       setSubmitting(false);
       setConfirming(false);
     }
+  }
+
+  // Enter in an answer field never submits the whole quiz. It moves on to the
+  // next question; on the last one it does nothing, so submitting always takes
+  // a deliberate press of Submit quiz. Enter on a focused button still clicks it.
+  function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter" || !(event.target instanceof HTMLInputElement)) return;
+    event.preventDefault();
+    if (!isLast) goTo(index + 1);
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -183,7 +231,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
         })}
       </nav>
 
-      <form onSubmit={onSubmit} className="rounded-2xl border border-border bg-surface p-5" noValidate>
+      <form onSubmit={onSubmit} onKeyDown={onKeyDown} className="rounded-2xl border border-border bg-surface p-5" noValidate>
         <p className="text-xs font-medium uppercase tracking-wide text-muted">
           Question {index + 1} of {total} · {current.type === "mcq" ? "Multiple choice" : "Short answer"}
         </p>
