@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { ThemeToggle } from "@frontend/components/ThemeToggle";
 import "@frontend/styles/globals.css";
 
 export const metadata: Metadata = {
@@ -15,8 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `(function(){var theme="light";try{var saved=localStorage.getItem("quiztrick-theme");theme=saved==="light"||saved==="dark"?saved:window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}catch{}document.documentElement.dataset.theme=theme;})();` }} />
       </head>
       <body>
-        <div className="pb-20">{children}</div>
-        <ThemeToggle />
+        {children}
       </body>
     </html>
   );
