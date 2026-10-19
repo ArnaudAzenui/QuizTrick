@@ -183,6 +183,11 @@ export const updateTaskSchema = createTaskSchema.partial().extend({
   isComplete: z.boolean({ invalid_type_error: "Task completion must be true or false." }).optional(),
 });
 
+/** GET /api/tasks?scope= — a missing scope means today (FR-6.3). */
+export const taskScopeSchema = z
+  .enum(["today", "all"], { errorMap: () => ({ message: "Task scope must be today or all." }) })
+  .default("today");
+
 /**
  * A saved timer session always has both ends (FR-7.4 saves on stop). The
  * client may send durationSeconds for convenience but it is NEVER trusted:
