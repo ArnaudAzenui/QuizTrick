@@ -1,10 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QuizRunner } from "@frontend/components/quiz/QuizRunner";
-import { buildAttemptAnswers, countAnswered, isAnswered, optionLetter } from "@frontend/components/quiz/quiz-runner";
+import {
+  buildAttemptAnswers,
+  countAnswered,
+  isAnswered,
+  leavesQuiz,
+  optionLetter,
+  submitAttempt,
+  type LinkClick,
+} from "@frontend/components/quiz/quiz-runner";
 import TakeQuizPage from "@/app/(app)/quizzes/[id]/page";
 import { LIMITS } from "@shared/constants";
-import type { PublicQuestion } from "@shared/types";
+import type { Attempt, PublicQuestion } from "@shared/types";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }) }));
 
@@ -61,5 +69,73 @@ describe("take-quiz page (FR-4.1)", () => {
 
   it("renders the runner on its own", () => {
     expect(renderToStaticMarkup(<QuizRunner quizId="abc" />)).toContain('role="status"');
+  });
+});
+
+describe("submitAttempt (FR-4.3, FR-4.6)", () => {
+  const attempt: Attempt = {
+    attemptId: "a-123",
+    quizId: "z",
+    ownerId: "u",
+    startedAt: "2026-10-15T14:00:00.000Z",
+    submittedAt: "2026-10-15T14:05:00.000Z",
+    score: 50,
+  };
+
+  it("posts the answers to the attempts route and returns the results page for that attempt", async () => {
+    const post = vi.fn().mockResolvedValue(attempt);
+    const url = await submitAttempt(post, "z", questions, { q1: "1", q2: " oxygen " }, "2026-10-15T14:00:00.000Z");
+    expect(post).toHaveBeenCalledWith("/api/quizzes/z/attempts", {
+      startedAt: "2026-10-15T14:00:00.000Z",
+      answers: [
+        { questionId: "q1", response: "1" },
+        { questionId: "q2", response: "oxygen" },
+      ],
+    });
+    expect(url).toBe("/quizzes/z/results/a-123");
+  });
+
+  it("leaves startedAt out when it was never recorded", async () => {
+    const post = vi.fn().mockResolvedValue(attempt);
+    await submitAttempt(post, "z", questions, {}, "");
+    expect(post.mock.calls[0][1]).toEqual({ startedAt: undefined, answers: [] });
+  });
+
+  it("passes a failed submit through so the page can show it and keep the answers", async () => {
+    const post = vi.fn().mockRejectedValue(new Error("This endpoint is not implemented yet."));
+    await expect(submitAttempt(post, "z", questions, { q1: "0" }, "")).rejects.toThrow("not implemented");
+  });
+});
+
+describe("leavesQuiz (leave-page warning for in-app links)", () => {
+  const here = "https://quiztrick.vercel.app/quizzes/z";
+  const click = (over: Partial<LinkClick> = {}): LinkClick => ({
+    href: "/dashboard",
+    button: 0,
+    metaKey: false,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    ...over,
+  });
+
+  it("catches a plain click on a nav link to another page in the app", () => {
+    expect(leavesQuiz(click(), here)).toBe(true);
+    expect(leavesQuiz(click({ href: "https://quiztrick.vercel.app/texts" }), here)).toBe(true);
+    expect(leavesQuiz(click({ href: "/quizzes/z?retry=1" }), here)).toBe(true);
+  });
+
+  it("ignores links to this same page", () => {
+    expect(leavesQuiz(click({ href: "/quizzes/z" }), here)).toBe(false);
+    expect(leavesQuiz(click({ href: "#question-3" }), here)).toBe(false);
+  });
+
+  it("ignores new-tab clicks, downloads and other sites, which don't lose the answers", () => {
+    expect(leavesQuiz(click({ ctrlKey: true }), here)).toBe(false);
+    expect(leavesQuiz(click({ metaKey: true }), here)).toBe(false);
+    expect(leavesQuiz(click({ button: 1 }), here)).toBe(false);
+    expect(leavesQuiz(click({ target: "_blank" }), here)).toBe(false);
+    expect(leavesQuiz(click({ download: true }), here)).toBe(false);
+    expect(leavesQuiz(click({ href: "https://example.com/" }), here)).toBe(false);
   });
 });
