@@ -97,6 +97,8 @@ export interface AttemptReview {
 
 /** Score-history row (FR-5.2). */
 export interface HistoryEntry {
+  /** Time spent on this quiz attempt, derived from its stored timestamps. */
+  durationSeconds: number | null;
   attemptId: string;
   quizId: string;
   quizTitle: string | null;
