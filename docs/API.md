@@ -65,16 +65,16 @@ Failure modes: `RATE_LIMITED` after 20/hour; `AI_UNAVAILABLE` on network/timeout
 | `GET /api/quizzes/:id` | — | `QuizForTaking` — `questions[]` in `position` order, **without** `correctOption` / `expectedAnswer`. Another user's quiz is `NOT_FOUND`, not `FORBIDDEN`, so the API never confirms that an id exists | FR-4.1 |
 | `DELETE /api/quizzes/:id` | — | `{ deleted: true }` | SEC-10 |
 | `POST /api/quizzes/:id/attempts` | `{ startedAt?, answers: [{ questionId, response }] }` — MCQ response is the option index as a string (`"0"`–`"3"`); short answer ≤ 200 chars, compared to the key after lower-casing, trimming and dropping trailing punctuation, so `"Paris."` matches `paris`; each `questionId` at most once (case-insensitive). Unanswered questions are graded as incorrect. A `startedAt` in the future is ignored rather than rejected, so a wrong device clock can't cost a student their attempt. | `Attempt` (201) with `score` 0–100 | FR-4.3–4.5, NFR-R3 |
-| `GET /api/attempts/:id` | — | `AttemptReview` — includes correct answers and per-question `isCorrect` | FR-4.6 |
+| `GET /api/attempts/:id` | — | `AttemptReview` — the attempt, its quiz, and one item per question in `position` order with the full question (answer key included), the student's `response` (`""` if unanswered) and `isCorrect`. Another user's attempt is `NOT_FOUND` | FR-4.6 |
 | `GET /api/history` | — | `HistoryEntry[]` newest first, `isBest` flag | FR-5.2, FR-5.4 |
 
 ## Tasks
 
 | Method & path | Body | Returns | Req. |
 |---|---|---|---|
-| `GET /api/tasks?scope=today\|all` | — | `StudyTask[]` (today = created today OR still incomplete) | FR-6.3 |
+| `GET /api/tasks?scope=today\|all` | — | `StudyTask[]` — `today` (the default) = created since midnight UTC OR still incomplete, however old; `all` = everything. Incomplete tasks first, then newest first | FR-6.3 |
 | `POST /api/tasks` | `{ subject (1–100), description?: string \| null (≤500), estimatedMinutes (1–600, whole number) }` | `StudyTask` (201) | FR-6.1, FR-6.2 |
-| `PATCH /api/tasks/:id` | any of `{ subject, description, estimatedMinutes, isComplete }` — omitted fields are left alone; `description: null` clears it | `StudyTask` | FR-6.4 |
+| `PATCH /api/tasks/:id` | any of `{ subject, description, estimatedMinutes, isComplete }` — omitted fields are left alone; `description: null` clears it; an empty body `{}` changes nothing and returns the task as it is | `StudyTask` | FR-6.4 |
 | `DELETE /api/tasks/:id` | — | `{ deleted: true }` | FR-6.5 |
 
 ## Timer sessions
