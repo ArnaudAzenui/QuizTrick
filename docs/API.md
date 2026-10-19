@@ -66,7 +66,7 @@ Failure modes: `RATE_LIMITED` after 20/hour; `AI_UNAVAILABLE` on network/timeout
 | `DELETE /api/quizzes/:id` | — | `{ deleted: true }` | SEC-10 |
 | `POST /api/quizzes/:id/attempts` | `{ startedAt?, answers: [{ questionId, response }] }` — MCQ response is the option index as a string (`"0"`–`"3"`); short answer ≤ 200 chars, compared to the key after lower-casing, trimming and dropping trailing punctuation, so `"Paris."` matches `paris`; each `questionId` at most once (case-insensitive). Unanswered questions are graded as incorrect. A `startedAt` in the future is ignored rather than rejected, so a wrong device clock can't cost a student their attempt. | `Attempt` (201) with `score` 0–100 | FR-4.3–4.5, NFR-R3 |
 | `GET /api/attempts/:id` | — | `AttemptReview` — the attempt, its quiz, and one item per question in `position` order with the full question (answer key included), the student's `response` (`""` if unanswered) and `isCorrect`. Another user's attempt is `NOT_FOUND` | FR-4.6 |
-| `GET /api/history` | — | `HistoryEntry[]` newest first, `isBest` flag | FR-5.2, FR-5.4 |
+| `GET /api/history` | — | `HistoryEntry[]` newest first, `isBest` flag and `durationSeconds` for time spent on each quiz attempt (null if timestamps are unavailable) | FR-5.2, FR-5.4 |
 
 ## Tasks
 
