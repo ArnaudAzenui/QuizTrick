@@ -33,9 +33,9 @@ The provider in `src/backend/services/ai/openai.provider.ts` speaks the OpenAI c
 | Vendor | `AI_BASE_URL` | Example `AI_MODEL` |
 |---|---|---|
 | OpenAI (default) | `https://api.openai.com/v1` | `gpt-4o-mini` |
-| Google Gemini (OpenAI-compatible endpoint) | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.0-flash` |
+| Google Gemini (OpenAI-compatible endpoint) | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-3.8-flash` |
 
-`AI_API_KEY` is whichever vendor's key. If the free-tier budget is a concern for the usability tests, Gemini's free quota is usually the more generous of the two.
+`AI_API_KEY` is whichever vendor's key. Google retires model names for new accounts (`gemini-2.5-flash` returned 404 for a key created in 2026); if generation fails with `[ai/openai] provider returned an error 404`, list what your key can use with `curl -H "x-goog-api-key: $AI_API_KEY" https://generativelanguage.googleapis.com/v1beta/models` and set `AI_MODEL` to a current `*-flash` model. If the free-tier budget is a concern for the usability tests, Gemini's free quota is usually the more generous of the two.
 
 Then apply the database schema: open Supabase → SQL Editor → paste `supabase/migrations/0001_initial_schema.sql` → Run, then do the same for `supabase/migrations/0002_harden_rls_and_constraints.sql`. **Run them in order** — 0002 closes gaps that 0001 recreates, so applying 0001 on its own afterwards undoes them. (Or use the Supabase CLI — see `supabase/README.md`.)
 
