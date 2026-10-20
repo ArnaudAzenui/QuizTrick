@@ -4,7 +4,8 @@ import Link from "next/link";
 import { api, errorMessage } from "@frontend/lib/api-client";
 import type { StudySession } from "@shared/types";
 import { formatElapsed } from "@shared/utils/format";
-import { elapsedMilliseconds, finishSession, timerLimitMilliseconds, timerDisplaySeconds, type TimerMode, type TimerSession } from "./timer";
+import { ROUTES } from "@shared/constants";
+import { elapsedMilliseconds, finishSession, MAX_COUNTDOWN_MINUTES, timerLimitMilliseconds, timerDisplaySeconds, type TimerMode, type TimerSession } from "./timer";
 
 type TimerContextValue = {
   mode: TimerMode; setMode: (mode: TimerMode) => void; durationMinutes: number; setDurationMinutes: (minutes: number) => void; displaySeconds: number; completed: boolean;
@@ -95,7 +96,7 @@ export function TimerProvider({ children }: { children: ReactNode }) {
   }
   function setDurationMinutes(minutes: number) {
     if (runningRef.current || pending || savingRef.current) return;
-    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 1440) return;
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > MAX_COUNTDOWN_MINUTES) return;
     reset();
     updateDurationMinutes(minutes);
   }
@@ -109,5 +110,5 @@ export function useTimer() {
 export function TimerIndicator() {
   const timer = useTimer();
   if (!timer.running && !timer.pending && !timer.message && !timer.saving) return null;
-  return <Link href="/timer" className="text-sm text-primary">{timer.mode === "countdown" ? "Countdown" : "Stopwatch"} {formatElapsed(timer.displaySeconds)}{timer.saving ? " - Saving..." : timer.pending ? " - Unsaved" : timer.running ? " - Running" : " - Stopped"}</Link>;
+  return <Link href={ROUTES.timer} className="text-sm text-primary">{timer.mode === "countdown" ? "Countdown" : "Stopwatch"} {formatElapsed(timer.displaySeconds)}{timer.saving ? " - Saving..." : timer.pending ? " - Unsaved" : timer.running ? " - Running" : " - Stopped"}</Link>;
 }

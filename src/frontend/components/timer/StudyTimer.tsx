@@ -4,6 +4,7 @@ import { api, errorMessage } from "@frontend/lib/api-client";
 import type { StudyTask } from "@shared/types";
 import { formatElapsed } from "@shared/utils/format";
 import { useTimer } from "./TimerProvider";
+import { MAX_COUNTDOWN_MINUTES } from "./timer";
 export function StudyTimer() {
   const timer = useTimer();
   const [tasks, setTasks] = useState<StudyTask[]>([]);
@@ -38,10 +39,10 @@ export function StudyTimer() {
         </div>
         {timer.mode === "countdown" && <div>
           <label htmlFor="countdown-minutes" className="block text-sm font-medium">Countdown duration (minutes)</label>
-          <input id="countdown-minutes" type="number" min={1} max={1440} step={1} value={timer.durationMinutes}
+          <input id="countdown-minutes" type="number" min={1} max={MAX_COUNTDOWN_MINUTES} step={1} value={timer.durationMinutes}
             onChange={event => timer.setDurationMinutes(Number(event.target.value))}
             className="mt-2 w-full rounded-xl border border-border bg-surface px-3 py-2" />
-          <p className="mt-1 text-sm text-muted">1 to 1,440 minutes. Stops automatically at zero and saves the session.</p>
+          <p className="mt-1 text-sm text-muted">1 to {MAX_COUNTDOWN_MINUTES.toLocaleString()} minutes. Stops automatically at zero and saves the session.</p>
         </div>}
       </fieldset>
       <p role="timer" aria-label={timer.mode === "countdown" ? "Remaining study time" : "Elapsed study time"} className="text-center text-5xl font-semibold tabular-nums">{formatElapsed(timer.displaySeconds)}</p>
