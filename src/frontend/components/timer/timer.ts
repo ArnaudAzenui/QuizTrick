@@ -1,6 +1,8 @@
 import { LIMITS } from "@shared/constants";
 export type TimerSession = { startTime: string; endTime: string; taskId?: string };
 export const MAX_TIMER_MS = LIMITS.SESSION_MAX_SECONDS * 1000;
+/** Longest countdown the form accepts: the same 24-hour session cap, in minutes (1440). */
+export const MAX_COUNTDOWN_MINUTES = LIMITS.SESSION_MAX_SECONDS / 60;
 /** Timestamp arithmetic stays accurate when background tabs throttle intervals. */
 export function elapsedMilliseconds(startTime: string, now: number): number {
   return Math.min(MAX_TIMER_MS, Math.max(0, now - Date.parse(startTime)));

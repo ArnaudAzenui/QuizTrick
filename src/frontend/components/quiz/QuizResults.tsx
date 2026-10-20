@@ -23,7 +23,7 @@ export function ResultsReview({ data }: { data: AttemptReview }) {
     </header>
     <ol className="space-y-4" aria-label="Question review">{items.map(({ question, response, isCorrect }, index) =>
       <li key={question.questionId} className="rounded-2xl border border-border bg-surface p-5">
-        <p className="text-sm font-medium">Question {index + 1} ? {isCorrect ? "Correct" : "Incorrect"}</p>
+        <p className="text-sm font-medium">Question {index + 1} · {isCorrect ? "Correct" : "Incorrect"}</p>
         <h2 className="mt-2 whitespace-pre-wrap text-lg font-medium">{question.text}</h2>
         {question.type === "mcq" && <ol className="mt-3 space-y-1 text-sm" aria-label="Answer options">{question.options.map((option, i) => <li key={i}>{optionLetter(i)}. {option}</li>)}</ol>}
         <dl className="mt-4 space-y-2 break-words text-sm">
@@ -48,7 +48,7 @@ export function QuizResults({ quizId, attemptId }: { quizId: string; attemptId: 
     }).catch(err => { if (active) setLoad({ state: "error", message: errorMessage(err) }); });
     return () => { active = false; };
   }, [quizId, attemptId, retry]);
-  if (load.state === "loading") return <p role="status">Loading your results?</p>;
+  if (load.state === "loading") return <p role="status">Loading your results…</p>;
   if (load.state === "error") return <div className="space-y-3"><h1 className="text-2xl font-semibold">Quiz results</h1><p role="alert">{load.message}</p><button type="button" className="rounded-xl border border-border px-4 py-2" onClick={() => setRetry(value => value + 1)}>Try again</button></div>;
   return <ResultsReview data={load.data} />;
 }
