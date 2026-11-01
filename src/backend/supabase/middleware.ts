@@ -17,7 +17,7 @@ export async function updateSession(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   // Until the Supabase project exists (WBS 1.3.4.2) and .env.local is filled
-  // in (WBS 1.3.4.4), skip auth so the skeleton runs out of the box — but only
+  // in (WBS 1.3.4.4), skip auth so the app still runs out of the box — but only
   // in development. In production a missing config must fail CLOSED: protected
   // routes return 503 instead of silently becoming public (SEC-4, FR-1.4).
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes("your-project") || supabaseUrl.includes("placeholder")) {

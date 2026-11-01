@@ -19,8 +19,8 @@ type Load = { state: "loading" } | { state: "error"; message: string } | { state
  * question at a time with Previous / Next, and keeps every answer in state keyed
  * by question id so it stays editable until Submit. Submit posts to
  * POST /api/quizzes/:id/attempts and opens /quizzes/[id]/results/[attemptId].
- * If the request fails (including "not implemented yet" before the route lands)
- * the message is shown and the answers are kept so the student can try again.
+ * If the request fails the message is shown and the answers are kept so the
+ * student can try again.
  *
  * Leaving with unsubmitted answers asks first, both for reload / closing the tab
  * (beforeunload) and for in-app links like the nav bar. Enter never submits the
