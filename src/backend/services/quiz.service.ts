@@ -3,9 +3,7 @@
  *
  *   - listQuizzesForText (FR-3.7)
  *   - getQuizForTaking (FR-4.1) - questions without correctOption / expectedAnswer (SDD decision 2)
- *
- * Still to build here:
- *   - deleteQuiz (SEC-10)
+ *   - deleteQuiz (SEC-10) - cascades to the quiz's questions and attempts
  *
  * Errors: throw AppError (src/backend/lib/errors.ts); routes wrap handlers with handle() from lib/api.ts.
  * Data access: user-owned rows via supabase/server.ts (RLS); answer keys + atomic RPCs via supabase/admin.ts ONLY.
@@ -104,4 +102,32 @@ export async function getQuizForTaking(quizId: string): Promise<QuizForTaking> {
     quiz: toQuiz(row, text?.title ?? null),
     questions: (questions ?? []).map(toPublicQuestion),
   };
+}
+
+/**
+ * SEC-10. Cascades to the quiz's questions and attempts, so the quiz drops out
+ * of score history too (docs/API.md). No admin client: quizzes_delete_own lets
+ * the user client delete its own rows, and RLS turns "not yours" into "nothing
+ * deleted", which reads as NOT_FOUND - the API never confirms that an id exists.
+ */
+export async function deleteQuiz(quizId: string): Promise<{ deleted: true }> {
+  const quizMissing = () => AppError.notFound("That quiz");
+  if (!idSchema.safeParse(quizId).success) throw quizMissing();
+
+  const user = await getCurrentUser();
+  const client = await createUserClient();
+  // .select() returns what was deleted; an empty list means no row was the caller's.
+  const { data, error } = await client
+    .from("quizzes")
+    .delete()
+    .eq("id", quizId)
+    .eq("owner_id", user.userId)
+    .select("id");
+
+  if (error) {
+    console.error("[quizzes] delete failed", error.code, error.message);
+    throw AppError.internal("We couldn't delete that quiz. Please try again.");
+  }
+  if (!data || data.length === 0) throw quizMissing();
+  return { deleted: true };
 }
