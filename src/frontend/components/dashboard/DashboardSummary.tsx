@@ -105,7 +105,7 @@ function SummaryCard<T>({ title, endpoint, href, linkLabel, summarize }: Summary
 
       {load.state === "error" && (
         <div className="mt-3 space-y-2">
-          <p role="alert" className="text-sm">Couldn't load this summary.</p>
+          <p role="alert" className="text-sm">Couldn&apos;t load this summary.</p>
           <button
             type="button"
             className="text-sm text-primary underline"

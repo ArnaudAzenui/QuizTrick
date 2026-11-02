@@ -70,7 +70,7 @@ export default function HomePage() {
           </div>
           <aside aria-label="Example study workflow" className="rounded-3xl border border-border bg-surface p-6 shadow-sm sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-widest text-muted">A study session, simplified</p>
-            <h2 className="mt-4 text-2xl font-semibold">Start with what you're learning.</h2>
+            <h2 className="mt-4 text-2xl font-semibold">Start with what you&apos;re learning.</h2>
             <ol className="mt-6 space-y-5">
             {steps.map((step) => (
               <li key={step.number} className="flex gap-4">
@@ -83,7 +83,7 @@ export default function HomePage() {
             ))}
             </ol>
             <p className="mt-6 border-t border-border pt-5 text-sm text-muted">
-              Practice at your pace. Come back whenever you're ready.
+              Practice at your pace. Come back whenever you&apos;re ready.
             </p>
           </aside>
         </section>
