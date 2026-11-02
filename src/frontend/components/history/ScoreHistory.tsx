@@ -48,8 +48,8 @@ function AttemptDetails({ entry }: { entry: HistoryEntry }) {
     return () => { active = false; };
   }, [entry.attemptId, entry.quizId, retry]);
 
-  if (load.state === "loading") return <p role="status" className="text-sm">Loading answers...</p>;
-  if (load.state === "error") return <div className="space-y-3"><p role="alert">{load.message}</p><button type="button" className={buttonClass} onClick={() => setRetry(value => value + 1)}>Retry answers</button></div>;
+  if (load.state === "loading") return <p role="status" className="text-sm text-muted">Loading answers…</p>;
+  if (load.state === "error") return <div className="space-y-3"><p role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{load.message}</p><button type="button" className={buttonClass} onClick={() => setRetry(value => value + 1)}>Retry answers</button></div>;
   return <div className="space-y-4">
     <IncorrectAnswers review={load.data} />
     <Link className="inline-block text-sm text-primary underline" href={ROUTES.results(entry.quizId, entry.attemptId)}>View all answers</Link>
@@ -100,8 +100,8 @@ export function ScoreHistory() {
 
   return <div className="space-y-6">
     <header><h1 className="text-2xl font-semibold">Score history</h1></header>
-    {load.state === "loading" && <p role="status">Loading score history...</p>}
-    {load.state === "error" && <div className="space-y-3"><p role="alert">{load.message}</p><button type="button" className={buttonClass} onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
+    {load.state === "loading" && <p role="status" className="text-sm text-muted">Loading score history…</p>}
+    {load.state === "error" && <div className="space-y-3"><p role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{load.message}</p><button type="button" className={buttonClass} onClick={() => setRetry(value => value + 1)}>Try again</button></div>}
     {load.state === "ready" && (load.data.length === 0
       ? <div className="rounded-2xl border border-dashed border-border p-6"><p>No quiz attempts yet. Complete a quiz to see your score here.</p><Link className="mt-3 inline-block text-primary underline" href={ROUTES.texts}>Go to my texts</Link></div>
       : <ol className="space-y-4" aria-label="Past quiz attempts">{load.data.map(entry => <HistoryAttempt key={entry.attemptId} entry={entry} />)}</ol>)}

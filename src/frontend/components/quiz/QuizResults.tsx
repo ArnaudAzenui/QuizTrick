@@ -48,7 +48,7 @@ export function QuizResults({ quizId, attemptId }: { quizId: string; attemptId: 
     }).catch(err => { if (active) setLoad({ state: "error", message: errorMessage(err) }); });
     return () => { active = false; };
   }, [quizId, attemptId, retry]);
-  if (load.state === "loading") return <p role="status">Loading your results…</p>;
-  if (load.state === "error") return <div className="space-y-3"><h1 className="text-2xl font-semibold">Quiz results</h1><p role="alert">{load.message}</p><button type="button" className="rounded-xl border border-border px-4 py-2" onClick={() => setRetry(value => value + 1)}>Try again</button></div>;
+  if (load.state === "loading") return <p role="status" className="text-sm text-muted">Loading your results…</p>;
+  if (load.state === "error") return <div className="space-y-3"><h1 className="text-2xl font-semibold">Quiz results</h1><p role="alert" className="rounded-xl border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">{load.message}</p><button type="button" className="rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium hover:border-primary" onClick={() => setRetry(value => value + 1)}>Try again</button></div>;
   return <ResultsReview data={load.data} />;
 }

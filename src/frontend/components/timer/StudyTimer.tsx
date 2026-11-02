@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, errorMessage } from "@frontend/lib/api-client";
+import { ROUTES } from "@shared/constants";
 import type { StudyTask } from "@shared/types";
 import { formatElapsed } from "@shared/utils/format";
 import { useTimer } from "./TimerProvider";
@@ -52,8 +54,9 @@ export function StudyTimer() {
           {timer.taskId && !tasks.some(task => task.taskId === timer.taskId) && <option value={timer.taskId}>Selected task</option>}
           {tasks.map(task => <option key={task.taskId} value={task.taskId}>{task.subject}{task.isComplete ? " (completed)" : ""}</option>)}
         </select>
-        {loading && <p role="status" className="mt-2 text-sm text-muted">Loading tasks...</p>}
-        {taskError && <div className="mt-2 text-sm"><p role="alert">{taskError} You can still start without a task.</p><button type="button" className="underline" onClick={() => setRetry(value => value + 1)}>Retry loading tasks</button></div>}
+        {loading && <p role="status" className="mt-2 text-sm text-muted">Loading tasks…</p>}
+        {!loading && !taskError && tasks.length === 0 && <p className="mt-2 text-sm text-muted">No tasks yet. <Link href={ROUTES.tasks} className="text-primary underline">Add one in Tasks</Link> to link it to a study session.</p>}
+        {taskError && <div className="mt-2 space-y-1 text-sm"><p role="alert" className="text-danger">{taskError} You can still start without a task.</p><button type="button" className="underline" onClick={() => setRetry(value => value + 1)}>Retry loading tasks</button></div>}
       </div>
       <div className="flex flex-wrap justify-center gap-3">
         <button type="button" className={button} disabled={locked} onClick={() => { setConfirmReset(false); timer.start(); }}>Start</button>
