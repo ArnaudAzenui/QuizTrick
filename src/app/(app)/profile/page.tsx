@@ -46,7 +46,7 @@ export default function Page() {
   return <div className="max-w-md">
     <h1 className="text-2xl font-semibold">Profile</h1>
     {error && <p role="alert" className="mt-4 text-sm text-danger">{error}</p>}
-    {!profile ? error ? <button className="mt-4 underline" onClick={() => setAttempt(attempt + 1)}>Try again</button> : <p role="status" className="mt-4">Loading profile...</p> : <>
+    {!profile ? error ? <button type="button" className="mt-4 rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium hover:border-primary" onClick={() => setAttempt(attempt + 1)}>Try again</button> : <p role="status" className="mt-4 text-sm text-muted">Loading profile…</p> : <>
       <dl className="mt-6"><dt className="text-sm font-medium">Email</dt><dd className="mt-1 text-muted">{profile.email}</dd></dl>
       <form onSubmit={save} className="mt-6 space-y-4">
         <FormField id="displayName" name="displayName" label="Display name" autoComplete="nickname" required maxLength={LIMITS.DISPLAY_NAME_MAX}
