@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, errorMessage } from "@frontend/lib/api-client";
+import { ApiClientError, api, errorMessage } from "@frontend/lib/api-client";
 import { GeneratePanel } from "@frontend/components/quiz/GeneratePanel";
 import { ROUTES } from "@shared/constants";
 import type { Quiz, StudyText } from "@shared/types";
@@ -19,7 +19,8 @@ type Load =
  * quizzes, or delete it (FR-2.6, FR-3.1, FR-3.7, SEC-10; WBS 1.4.2 - 1.4.3).
  *
  * Deleting asks first, because the API also removes this text's quizzes and
- * their score history (docs/API.md).
+ * their score history (docs/API.md). The same goes for deleting one quiz from
+ * the list: DELETE /api/quizzes/:id takes that quiz's score history with it.
  */
 export function TextDetail({ textId }: { textId: string }) {
   const router = useRouter();
@@ -27,6 +28,10 @@ export function TextDetail({ textId }: { textId: string }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string>();
+  // One quiz at a time can be in the "are you sure?" step.
+  const [confirmQuizId, setConfirmQuizId] = useState<string>();
+  const [deletingQuizId, setDeletingQuizId] = useState<string>();
+  const [quizError, setQuizError] = useState<{ quizId: string; message: string }>();
 
   const fetchText = useCallback(async () => {
     setLoad({ state: "loading" });
@@ -57,6 +62,27 @@ export function TextDetail({ textId }: { textId: string }) {
       setDeleteError(errorMessage(err, "We couldn't delete this text. Please try again."));
       setDeleting(false);
     }
+  }
+
+  async function removeQuiz(quizId: string) {
+    if (deletingQuizId) return;
+    setDeletingQuizId(quizId);
+    setQuizError(undefined);
+    try {
+      await api.delete(`/api/quizzes/${quizId}`);
+    } catch (err) {
+      // Already gone (deleted in another tab): treat it as deleted.
+      if (!(err instanceof ApiClientError && err.code === "NOT_FOUND")) {
+        setQuizError({ quizId, message: errorMessage(err, "We couldn't delete this quiz. Please try again.") });
+        setDeletingQuizId(undefined);
+        return;
+      }
+    }
+    setLoad((current) =>
+      current.state === "ready" ? { ...current, quizzes: current.quizzes.filter((q) => q.quizId !== quizId) } : current,
+    );
+    setConfirmQuizId(undefined);
+    setDeletingQuizId(undefined);
   }
 
   if (load.state === "loading") {
@@ -105,28 +131,80 @@ export function TextDetail({ textId }: { textId: string }) {
 
       <GeneratePanel textId={text.textId} hasQuizzes={quizzes.length > 0} />
 
-      {quizzes.length > 0 && (
-        <section aria-labelledby="quizzes-heading">
-          <h2 id="quizzes-heading" className="text-lg font-semibold">
-            Quizzes from this text
-          </h2>
+      <section aria-labelledby="quizzes-heading">
+        <h2 id="quizzes-heading" className="text-lg font-semibold">
+          Quizzes from this text
+        </h2>
+        {quizzes.length === 0 ? (
+          <p className="mt-2 rounded-2xl border border-dashed border-border p-4 text-sm text-muted">
+            No quizzes from this text yet. Generate one above to start practicing.
+          </p>
+        ) : (
           <ul className="mt-3 space-y-2">
-            {quizzes.map((quiz) => (
-              <li key={quiz.quizId}>
-                <Link
-                  href={ROUTES.quiz(quiz.quizId)}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-sm hover:border-primary"
-                >
-                  <span>
-                    {quiz.questionCount} questions · <time dateTime={quiz.createdAt}>{formatDateTime(quiz.createdAt)}</time>
-                  </span>
-                  <span className="font-medium text-primary">Take quiz</span>
-                </Link>
-              </li>
-            ))}
+            {quizzes.map((quiz) => {
+              const label = `${quiz.questionCount}-question quiz from ${formatDateTime(quiz.createdAt)}`;
+              const isConfirming = confirmQuizId === quiz.quizId;
+              const isDeleting = deletingQuizId === quiz.quizId;
+              return (
+                <li key={quiz.quizId} className="rounded-xl border border-border bg-surface px-4 py-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span>
+                      {quiz.questionCount} questions · <time dateTime={quiz.createdAt}>{formatDateTime(quiz.createdAt)}</time>
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <Link
+                        href={ROUTES.quiz(quiz.quizId)}
+                        className="rounded-lg px-2 py-1 font-medium text-primary underline-offset-4 hover:underline"
+                      >
+                        Take quiz
+                      </Link>
+                      {!isConfirming && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuizError(undefined);
+                            setConfirmQuizId(quiz.quizId);
+                          }}
+                          aria-label={`Delete ${label}`}
+                          className="rounded-lg border border-danger/40 px-2 py-1 font-medium text-danger hover:bg-danger/10"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                  {isConfirming && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3">
+                      <span className="font-medium">Delete this quiz? Its score history will be deleted too.</span>
+                      <button
+                        type="button"
+                        onClick={() => void removeQuiz(quiz.quizId)}
+                        disabled={isDeleting}
+                        className="rounded-xl border border-danger bg-danger/10 px-3 py-1.5 font-medium text-danger hover:bg-danger/20 disabled:opacity-60"
+                      >
+                        {isDeleting ? "Deleting…" : "Yes, delete quiz"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmQuizId(undefined)}
+                        disabled={isDeleting}
+                        className="rounded-xl border border-border bg-surface px-3 py-1.5 font-medium hover:border-primary disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                  {quizError?.quizId === quiz.quizId && (
+                    <p role="alert" className="mt-2 text-danger">
+                      {quizError.message}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
           </ul>
-        </section>
-      )}
+        )}
+      </section>
 
       <section aria-labelledby="body-heading">
         <h2 id="body-heading" className="text-lg font-semibold">
