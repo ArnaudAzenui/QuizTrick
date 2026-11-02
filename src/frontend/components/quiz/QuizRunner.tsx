@@ -6,7 +6,17 @@ import { useRouter } from "next/navigation";
 import { api, errorMessage } from "@frontend/lib/api-client";
 import { LIMITS, ROUTES } from "@shared/constants";
 import type { Attempt, QuizForTaking } from "@shared/types";
-import { countAnswered, isAnswered, leavesQuiz, optionLetter, submitAttempt, type AnswerMap } from "./quiz-runner";
+import {
+  answeredPercent,
+  countAnswered,
+  isAnswered,
+  isTypingTarget,
+  leavesQuiz,
+  optionLetter,
+  shortcutOptionIndex,
+  submitAttempt,
+  type AnswerMap,
+} from "./quiz-runner";
 
 const LEAVE_MESSAGE = "Leave this quiz? Your unsubmitted answers and question flags will be lost.";
 
@@ -26,6 +36,10 @@ type Load = { state: "loading" } | { state: "error"; message: string } | { state
  * (beforeunload) and for in-app links like the nav bar. Enter never submits the
  * quiz: it moves to the next question, and on the last one the student has to
  * press Submit quiz themselves.
+ *
+ * On a four-option multiple-choice question, pressing A, B, C or D picks that
+ * answer. Shortcuts are ignored while typing in a text field or with Ctrl / Cmd /
+ * Alt held. A progress bar under the title follows the "x of y answered" count.
  */
 export function QuizRunner({ quizId }: { quizId: string }) {
   const router = useRouter();
@@ -54,6 +68,38 @@ export function QuizRunner({ quizId }: { quizId: string }) {
   useEffect(() => {
     void fetchQuiz();
   }, [fetchQuiz]);
+
+  const setAnswer = useCallback((questionId: string, response: string) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: response }));
+    if (response.trim()) {
+      setFlagged((previous) => {
+        if (!previous.has(questionId)) return previous;
+        const next = new Set(previous);
+        next.delete(questionId);
+        return next;
+      });
+    }
+    setConfirming(false);
+    setSubmitError(undefined);
+  }, []);
+
+  // A/B/C/D shortcuts for the question on screen (multiple choice only).
+  useEffect(() => {
+    if (load.state !== "ready" || submitting) return;
+    const { questions } = load.data;
+    const question = questions[Math.min(index, questions.length - 1)];
+    if (!question) return;
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || event.repeat) return;
+      if (isTypingTarget(event.target as HTMLElement | null)) return;
+      const option = shortcutOptionIndex(event.key, question);
+      if (option === null) return;
+      event.preventDefault();
+      setAnswer(question.questionId, String(option));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [load, index, submitting, setAnswer]);
 
   // UC-4 alternate flow: warn before leaving with unsubmitted answers.
   const hasProgress = flagged.size > 0 || Object.values(answers).some((a) => a.trim().length > 0);
@@ -157,20 +203,6 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     });
   }
 
-  function setAnswer(questionId: string, response: string) {
-    setAnswers((prev) => ({ ...prev, [questionId]: response }));
-    if (response.trim()) {
-      setFlagged(previous => {
-        if (!previous.has(questionId)) return previous;
-        const next = new Set(previous);
-        next.delete(questionId);
-        return next;
-      });
-    }
-    setConfirming(false);
-    setSubmitError(undefined);
-  }
-
   function goTo(next: number) {
     setIndex(Math.max(0, Math.min(total - 1, next)));
     setConfirming(false);
@@ -223,9 +255,23 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{quiz.title ?? "Practice quiz"}</h1>
-        <p className="mt-1 text-sm text-muted">
+        <p id="quiz-progress-label" className="mt-1 text-sm text-muted">
           {answered} of {total} answered · you can change any answer until you submit
         </p>
+        <div
+          role="progressbar"
+          aria-labelledby="quiz-progress-label"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={answered}
+          aria-valuetext={`${answered} of ${total} answered`}
+          className="mt-3 h-2 w-full overflow-hidden rounded-full bg-primary/15"
+        >
+          <div
+            className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
+            style={{ width: `${answeredPercent(answered, total)}%` }}
+          />
+        </div>
       </div>
 
       <nav aria-label="Questions" className="flex flex-wrap gap-2">
@@ -332,6 +378,12 @@ export function QuizRunner({ quizId }: { quizId: string }) {
                 );
               })}
             </div>
+            {current.options.length === 4 && (
+              <p className="mt-3 text-xs text-muted">
+                Tip: press <kbd className="rounded border border-border px-1">A</kbd>, <kbd className="rounded border border-border px-1">B</kbd>,{" "}
+                <kbd className="rounded border border-border px-1">C</kbd> or <kbd className="rounded border border-border px-1">D</kbd> to pick an answer.
+              </p>
+            )}
           </fieldset>
         ) : (
           <div className="mt-3">
