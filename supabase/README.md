@@ -6,6 +6,7 @@ This folder holds everything that lives in the Supabase project (WBS 1.3.4.2).
 |---|---|
 | `migrations/0001_initial_schema.sql` | Tables for every SRS §3.4 entity, RLS policies (SEC-4), triggers, and the `create_quiz_with_questions` / `submit_attempt` / `count_recent_generations` RPCs. |
 | `migrations/0002_harden_rls_and_constraints.sql` | Closes the gaps 0001 left: column-level privileges, CHECK constraints and validation the API alone can't enforce. See "Why 0002 exists" below. |
+| `migrations/0003_true_false_questions.sql` | Allows True/False choice pairs and checks their answer index. Apply after 0002 before using true/false quizzes. |
 | `tests/` | A schema test suite (`npm run test:db`) — stub Supabase roles plus ~80 assertions. |
 | `seed.sql` | Optional local seed data for manual testing. |
 
@@ -17,7 +18,7 @@ hardening — and leaves registration failing, because 0001's trigger can write 
 `display_name` longer than the constraint 0002 adds. If in doubt, run both again
 in order; they are all idempotent.
 
-**Option A — SQL editor (quickest):** open your Supabase project → SQL Editor → paste `migrations/0001_initial_schema.sql` → Run → then the same for `0002_harden_rls_and_constraints.sql`.
+**Option A — SQL editor (quickest):** open your Supabase project → SQL Editor → paste `migrations/0001_initial_schema.sql` → Run → then the same for `0002_harden_rls_and_constraints.sql` and `0003_true_false_questions.sql` in that order.
 
 **Option B — Supabase CLI:**
 

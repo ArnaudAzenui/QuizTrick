@@ -54,9 +54,11 @@ There is no edit endpoint: a saved text is immutable, because quizzes generated 
 
 | Method & path | Body | Returns | Req. |
 |---|---|---|---|
-| `POST /api/generate` | `{ textId, questionCount?: 5 \| 10 \| 15 }` (default 10; a digits-only string is accepted, for `<select>` values) | `Quiz` (201) | FR-3.1–3.9, SEC-6, SEC-7 |
+| `POST /api/generate` | `{ textId, questionCount?: 5 \| 10 \| 15, questionMix?: { mcq, trueFalse, shortAnswer } }` (default 10; a digits-only string is accepted, for `<select>` values) | `Quiz` (201) | FR-3.1–3.9, SEC-6, SEC-7 |
 
 Failure modes: `RATE_LIMITED` after 20/hour; `AI_UNAVAILABLE` on network/timeout (30 s); `AI_BAD_OUTPUT` when the model's reply fails schema validation after retries. No partial quiz is ever stored.
+
+Optional `questionMix` counts must be nonnegative integers adding up to `questionCount`. A zero excludes that type. Without a mix, generation keeps its original 70/30 multiple-choice/short-answer split. For example, 10 questions can use `{ "mcq": 4, "trueFalse": 3, "shortAnswer": 3 }`. True/false questions are stored and returned as `type: "mcq"` with `options: ["True", "False"]`; answer `"0"` for True or `"1"` for False. Apply migration 0003 before generating true/false quizzes.
 
 ## Taking & results
 

@@ -63,7 +63,7 @@ run_suite() { # run_suite <db> <label>
   psql_db "$db" < "$ROOT/supabase/tests/01_schema.test.sql"
 }
 
-MIGRATIONS=(supabase/migrations/0001_initial_schema.sql supabase/migrations/0002_harden_rls_and_constraints.sql)
+MIGRATIONS=(supabase/migrations/0001_initial_schema.sql supabase/migrations/0002_harden_rls_and_constraints.sql supabase/migrations/0003_true_false_questions.sql)
 
 psql_db postgres -c "create database quiztrick_fresh" >/dev/null
 apply quiztrick_fresh supabase/tests/00_supabase_stub.sql "${MIGRATIONS[@]}"

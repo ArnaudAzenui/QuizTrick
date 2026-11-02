@@ -101,10 +101,17 @@ export const createTextSchema = z.object(
   objectBody,
 );
 
-export const generateQuizSchema = z.object(
+const questionMixSchema = z.object({
+  mcq: z.number().int().min(0).max(LIMITS.QUIZ_MAX_QUESTIONS),
+  trueFalse: z.number().int().min(0).max(LIMITS.QUIZ_MAX_QUESTIONS),
+  shortAnswer: z.number().int().min(0).max(LIMITS.QUIZ_MAX_QUESTIONS),
+});
+
+const generateQuizInput = z.object(
   {
     textId: z.string({ required_error: "Choose a saved study text first.", invalid_type_error: "Choose a saved study text first." })
       .uuid("Choose a saved study text first."),
+    questionMix: questionMixSchema.optional(),
     questionCount: z
       .preprocess(
         (v) => (typeof v === "string" && /^\s*\d+\s*$/.test(v) ? Number(v.trim()) : v),
@@ -115,6 +122,11 @@ export const generateQuizSchema = z.object(
       .default(LIMITS.DEFAULT_QUESTION_COUNT as 10),
   },
   objectBody,
+);
+
+export const generateQuizSchema = generateQuizInput.refine(
+  input => !input.questionMix || input.questionMix.mcq + input.questionMix.trueFalse + input.questionMix.shortAnswer === input.questionCount,
+  { message: "Question types must add up to the selected number of questions.", path: ["questionMix"] },
 );
 
 export const submitAttemptSchema = z

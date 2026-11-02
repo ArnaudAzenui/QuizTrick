@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DashboardSummary } from "@frontend/components/dashboard/DashboardSummary";
 import { TextList } from "@frontend/components/texts/TextList";
 import { ROUTES } from "@shared/constants";
 
@@ -11,11 +12,11 @@ const QUICK_LINKS = [
 /**
  * Signed-in landing page (WBS 1.4 - 1.6). The study loop starts here:
  * add text, then generate a quiz from it. Tasks, timer and history are
- * linked now and get their own summaries as those features land.
+ * summarized using the existing account APIs.
  */
 export default function Page() {
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-8">
       <section className="rounded-2xl border border-border bg-surface p-6">
         <h1 className="text-2xl font-semibold tracking-tight">Turn your notes into a practice quiz</h1>
         <p className="mt-2 text-sm text-muted">
@@ -30,6 +31,8 @@ export default function Page() {
           </Link>
         </div>
       </section>
+
+      <DashboardSummary />
 
       <section aria-labelledby="recent-heading">
         <h2 id="recent-heading" className="text-lg font-semibold">

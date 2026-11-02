@@ -61,11 +61,14 @@ describe("StudyTextEditor (FR-2.1 - FR-2.5)", () => {
 });
 
 describe("GeneratePanel (FR-3.1, FR-3.2)", () => {
-  it("offers 5, 10 and 15 questions with 10 selected and shows the 70/30 mix", () => {
+  it("offers 5, 10 and 15 questions with 10 selected and offers counts for each question type", () => {
     const html = renderToStaticMarkup(<GeneratePanel textId="00000000-0000-4000-8000-000000000000" />);
     for (const n of LIMITS.QUESTION_COUNTS) expect(html).toContain(`${n} questions`);
     expect(html).toMatch(/<option value="10" selected="">/);
-    expect(html).toContain("7 multiple choice and 3 short answer");
+    expect(html).toContain('id="mix-mcq"');
+    expect(html).toContain('id="mix-trueFalse"');
+    expect(html).toContain('id="mix-shortAnswer"');
+    expect(html).toContain("10 of 10 questions selected");
     expect(html).toContain("Generate quiz");
     expect(html).not.toContain('role="alert"');
   });

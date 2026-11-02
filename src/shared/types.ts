@@ -5,6 +5,12 @@
  */
 import type { Theme } from "./constants";
 
+export interface QuestionMix {
+  mcq: number;
+  trueFalse: number;
+  shortAnswer: number;
+}
+
 export type QuestionType = "mcq" | "short_answer";
 
 /** UserProfile */
@@ -45,7 +51,7 @@ export interface Question {
   position: number;
   type: QuestionType;
   text: string;
-  options: string[]; // exactly 4 for mcq, [] for short_answer
+  options: string[]; // 4 for multiple choice, ["True", "False"] for true/false, [] for short answer
   correctOption: number | null; // index 0-3 for mcq
   expectedAnswer: string | null; // for short_answer
 }

@@ -56,9 +56,9 @@ async function enforceRateLimit(userId: string): Promise<void> {
 }
 
 /** Calls the model until a reply passes the parser or the budget runs out. */
-async function requestQuestions(text: string, questionCount: number): Promise<GeneratedQuestion[]> {
+async function requestQuestions(text: string, questionCount: number, mix?: z.infer<typeof generateQuizSchema>["questionMix"]): Promise<GeneratedQuestion[]> {
   const provider = getAiProvider();
-  const prompt = buildPrompt(text, questionCount);
+  const prompt = buildPrompt(text, questionCount, mix);
   const deadline = Date.now() + LIMITS.GENERATION_TIMEOUT_MS;
   let lastError: AppError = AppError.aiUnavailable();
 
@@ -110,7 +110,7 @@ export async function generateQuiz(input: z.infer<typeof generateQuizSchema>): P
   const text = await findOwnedText(user.userId, input.textId);
   await enforceRateLimit(user.userId);
 
-  const questions = await requestQuestions(text.body, input.questionCount);
+  const questions = await requestQuestions(text.body, input.questionCount, input.questionMix);
   const quizId = await saveQuiz(user.userId, text.textId, questions);
 
   const client = await createUserClient();

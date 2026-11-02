@@ -8,7 +8,7 @@ import { LIMITS, ROUTES } from "@shared/constants";
 import type { Attempt, QuizForTaking } from "@shared/types";
 import { countAnswered, isAnswered, leavesQuiz, optionLetter, submitAttempt, type AnswerMap } from "./quiz-runner";
 
-const LEAVE_MESSAGE = "You have answers you haven't submitted. Leave this quiz? Your answers will be lost.";
+const LEAVE_MESSAGE = "Leave this quiz? Your unsubmitted answers and question flags will be lost.";
 
 type Load = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: QuizForTaking };
 
@@ -32,6 +32,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>({});
+  const [flagged, setFlagged] = useState<Set<string>>(() => new Set());
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
@@ -43,6 +44,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     try {
       const data = await api.get<QuizForTaking>(`/api/quizzes/${quizId}`);
       startedAt.current = new Date().toISOString();
+      setFlagged(new Set());
       setLoad({ state: "ready", data });
     } catch (err) {
       setLoad({ state: "error", message: errorMessage(err, "We couldn't load this quiz. Please try again.") });
@@ -54,9 +56,9 @@ export function QuizRunner({ quizId }: { quizId: string }) {
   }, [fetchQuiz]);
 
   // UC-4 alternate flow: warn before leaving with unsubmitted answers.
-  const hasAnswers = Object.values(answers).some((a) => a.trim().length > 0);
+  const hasProgress = flagged.size > 0 || Object.values(answers).some((a) => a.trim().length > 0);
   useEffect(() => {
-    if (!hasAnswers) return;
+    if (!hasProgress) return;
     const warn = (event: BeforeUnloadEvent) => {
       if (submitted.current) return;
       event.preventDefault();
@@ -93,7 +95,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
       window.removeEventListener("beforeunload", warn);
       document.removeEventListener("click", guardLinks, true);
     };
-  }, [hasAnswers]);
+  }, [hasProgress]);
 
   if (load.state === "loading") {
     return (
@@ -141,9 +143,30 @@ export function QuizRunner({ quizId }: { quizId: string }) {
   const unanswered = total - answered;
   const isLast = index === total - 1;
   const value = answers[current.questionId] ?? "";
+  const currentIsFlagged = flagged.has(current.questionId);
+  const flaggedQuestions = questions
+    .map((question, questionIndex) => ({ question, questionIndex }))
+    .filter(({ question }) => flagged.has(question.questionId));
+
+  function toggleFlag() {
+    setFlagged(previous => {
+      const next = new Set(previous);
+      if (next.has(current.questionId)) next.delete(current.questionId);
+      else next.add(current.questionId);
+      return next;
+    });
+  }
 
   function setAnswer(questionId: string, response: string) {
     setAnswers((prev) => ({ ...prev, [questionId]: response }));
+    if (response.trim()) {
+      setFlagged(previous => {
+        if (!previous.has(questionId)) return previous;
+        const next = new Set(previous);
+        next.delete(questionId);
+        return next;
+      });
+    }
     setConfirming(false);
     setSubmitError(undefined);
   }
@@ -209,6 +232,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
         {questions.map((q, i) => {
           const done = isAnswered(answers, q.questionId);
           const active = i === index;
+          const isFlagged = flagged.has(q.questionId);
           return (
             <button
               key={q.questionId}
@@ -216,8 +240,8 @@ export function QuizRunner({ quizId }: { quizId: string }) {
               onClick={() => goTo(i)}
               disabled={submitting}
               aria-current={active ? "step" : undefined}
-              aria-label={`Question ${i + 1}${done ? ", answered" : ", not answered"}`}
-              className={`h-9 w-9 rounded-full border text-sm font-medium ${
+              aria-label={`Question ${i + 1}${done ? ", answered" : ", not answered"}${isFlagged ? ", flagged for review" : ""}`}
+              className={`relative h-9 w-9 rounded-full border text-sm font-medium ${
                 active
                   ? "border-primary bg-primary text-primary-fg"
                   : done
@@ -226,15 +250,55 @@ export function QuizRunner({ quizId }: { quizId: string }) {
               }`}
             >
               {i + 1}
+              {isFlagged && (
+                <span aria-hidden="true" className="absolute -right-1 -top-2 rounded-full bg-surface p-0.5 text-primary">
+                  <FlagIcon />
+                </span>
+              )}
             </button>
           );
         })}
       </nav>
 
+      {flaggedQuestions.length > 0 && (
+        <section aria-labelledby="flagged-heading" className="rounded-xl border border-border bg-surface p-4">
+          <h2 id="flagged-heading" className="text-sm font-semibold">
+            Flagged for review ({flaggedQuestions.length})
+          </h2>
+          <p className="mt-1 text-sm text-muted">Select a question to return to it. Answering a question clears its flag.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {flaggedQuestions.map(({ question, questionIndex }) => (
+              <button
+                key={question.questionId}
+                type="button"
+                onClick={() => goTo(questionIndex)}
+                disabled={submitting}
+                aria-current={questionIndex === index ? "step" : undefined}
+                className="rounded-lg border border-border px-3 py-2 text-sm hover:border-primary disabled:opacity-50"
+              >
+                Question {questionIndex + 1}
+                {!isAnswered(answers, question.questionId) && " · unanswered"}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       <form onSubmit={onSubmit} onKeyDown={onKeyDown} className="rounded-2xl border border-border bg-surface p-5" noValidate>
         <p className="text-xs font-medium uppercase tracking-wide text-muted">
-          Question {index + 1} of {total} · {current.type === "mcq" ? "Multiple choice" : "Short answer"}
+          Question {index + 1} of {total} · {current.type === "mcq" ? (current.options.length === 2 ? "True or false" : "Multiple choice") : "Short answer"}
         </p>
+
+        <button
+          type="button"
+          onClick={toggleFlag}
+          disabled={submitting}
+          aria-pressed={currentIsFlagged}
+          className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-primary hover:border-primary disabled:opacity-50"
+        >
+          <FlagIcon />
+          {currentIsFlagged ? "Remove flag" : "Flag for review"}
+        </button>
 
         {current.type === "mcq" ? (
           <fieldset className="mt-3">
@@ -262,7 +326,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
                       className="mt-0.5"
                     />
                     <span>
-                      <span className="font-semibold">{optionLetter(i)}.</span> {option}
+                      {current.options.length === 4 && <span className="font-semibold">{optionLetter(i)}. </span>}{option}
                     </span>
                   </label>
                 );
@@ -324,5 +388,13 @@ export function QuizRunner({ quizId }: { quizId: string }) {
         </div>
       </form>
     </div>
+  );
+}
+
+function FlagIcon() {
+  return (
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 21V3h14l-3 5 3 5H5" />
+    </svg>
   );
 }

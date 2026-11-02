@@ -11,7 +11,7 @@ export function reviewAnswer(question: Question, response: string): string {
   if (!response.trim()) return "Not answered";
   if (question.type === "short_answer") return response;
   const i = Number(response);
-  return /^[0-3]$/.test(response) && question.options[i] !== undefined ? optionLetter(i) + ". " + question.options[i] : "Invalid answer";
+  return /^[0-3]$/.test(response) && question.options[i] !== undefined ? (question.options.length === 2 ? "" : optionLetter(i) + ". ") + question.options[i] : "Invalid answer";
 }
 export function ResultsReview({ data }: { data: AttemptReview }) {
   const items = [...data.items].sort((a, b) => a.question.position - b.question.position);
@@ -25,7 +25,7 @@ export function ResultsReview({ data }: { data: AttemptReview }) {
       <li key={question.questionId} className="rounded-2xl border border-border bg-surface p-5">
         <p className="text-sm font-medium">Question {index + 1} · {isCorrect ? "Correct" : "Incorrect"}</p>
         <h2 className="mt-2 whitespace-pre-wrap text-lg font-medium">{question.text}</h2>
-        {question.type === "mcq" && <ol className="mt-3 space-y-1 text-sm" aria-label="Answer options">{question.options.map((option, i) => <li key={i}>{optionLetter(i)}. {option}</li>)}</ol>}
+        {question.type === "mcq" && <ol className="mt-3 space-y-1 text-sm" aria-label="Answer options">{question.options.map((option, i) => <li key={i}>{question.options.length === 4 && optionLetter(i) + ". "}{option}</li>)}</ol>}
         <dl className="mt-4 space-y-2 break-words text-sm">
           <div><dt className="font-semibold">Your answer</dt><dd className="whitespace-pre-wrap">{reviewAnswer(question, response)}</dd></div>
           <div><dt className="font-semibold">Correct answer</dt><dd className="whitespace-pre-wrap">{question.type === "mcq" ? reviewAnswer(question, String(question.correctOption)) : question.expectedAnswer}</dd></div>
