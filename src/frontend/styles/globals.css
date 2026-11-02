@@ -12,12 +12,12 @@
 :root {
   --qt-bg: 247 248 250;
   --qt-surface: 255 255 255;
-  --qt-border: 218 222 229;
+  --qt-border: 125 134 148;
   --qt-fg: 26 31 43;
   --qt-muted: 91 100 112;
   --qt-primary: 47 91 234;
   --qt-primary-fg: 255 255 255;
-  --qt-success: 22 128 61;
+  --qt-success: 20 112 53;
   --qt-danger: 190 30 45;
   --qt-warning: 158 96 0;
   color-scheme: light;
@@ -26,7 +26,7 @@
 [data-theme="dark"] {
   --qt-bg: 15 18 24;
   --qt-surface: 24 28 37;
-  --qt-border: 52 58 70;
+  --qt-border: 113 124 141;
   --qt-fg: 232 235 240;
   --qt-muted: 163 173 186;
   --qt-primary: 124 156 255;
@@ -45,6 +45,32 @@ body {
 body {
   @apply bg-bg text-fg antialiased;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Shared overflow and form defaults apply to every route and both themes. */
+* {
+  min-width: 0;
+}
+
+body {
+  overflow-wrap: anywhere;
+}
+
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--qt-muted));
+  opacity: 1;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: rgb(var(--qt-primary));
 }
 
 /* Keyboard focus must be visible in both themes (NFR-U3). */

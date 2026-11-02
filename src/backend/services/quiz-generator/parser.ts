@@ -3,13 +3,13 @@
  *
  * The model's reply is untrusted input. Everything the `questions` table checks
  * (migration 0002) is checked here first, so a bad reply is retried instead of
- * failing the insert: exactly 4 distinct non-empty options and one correct
+ * failing the insert: 4 distinct non-empty options (or a True/False pair) and one correct
  * index for MCQ, a non-empty expected answer of at most 50 characters for
  * short answer, non-empty question text for both.
  *
  * Tolerant where it costs nothing: a malformed question is dropped and a
  * surplus of one type is trimmed, as long as enough valid questions remain to
- * fill the requested 70/30 mix. Only a shortfall rejects the reply.
+ * fill the requested question mix. Only a shortfall rejects the reply.
  */
 import { AppError } from "@backend/lib/errors";
 import { LIMITS } from "@shared/constants";
@@ -54,6 +54,15 @@ function checkQuestion(q: unknown): Candidate | string {
   const text = typeof q.text === "string" ? q.text.trim() : "";
   if (!text) return "empty question text";
 
+  if (q.type === "true_false") {
+    const correct = q.correctOption === "0" || q.correctOption === "1" ? Number(q.correctOption) : q.correctOption;
+    if (!Array.isArray(q.options) || q.options.length !== 2 || q.options[0] !== "True" || q.options[1] !== "False") {
+      return "true_false needs options True and False, in that order";
+    }
+    if (correct !== 0 && correct !== 1) return "true_false correctOption must be 0 or 1";
+    return { type: "mcq", text, options: ["True", "False"], correct_option: correct, expected_answer: null };
+  }
+
   if (q.type === "mcq") {
     if (!Array.isArray(q.options) || q.options.length !== LIMITS.MCQ_OPTION_COUNT) {
       return `mcq needs exactly ${LIMITS.MCQ_OPTION_COUNT} options`;
@@ -81,7 +90,7 @@ function checkQuestion(q: unknown): Candidate | string {
   return `unknown type ${JSON.stringify(q.type)}`;
 }
 
-export function parseGeneratedQuiz(raw: string, mix: { mcq: number; shortAnswer: number }): GeneratedQuestion[] {
+export function parseGeneratedQuiz(raw: string, mix: { mcq: number; shortAnswer: number; trueFalse?: number }): GeneratedQuestion[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(stripCodeFence(raw));
@@ -111,16 +120,18 @@ export function parseGeneratedQuiz(raw: string, mix: { mcq: number; shortAnswer:
     valid.push(result);
   });
 
-  const mcq = valid.filter((q) => q.type === "mcq");
+  const mcq = valid.filter((q) => q.type === "mcq" && q.options.length === 4);
+  const trueFalse = valid.filter((q) => q.type === "mcq" && q.options.length === 2);
+  const trueFalseCount = mix.trueFalse ?? 0;
   const short = valid.filter((q) => q.type === "short_answer");
-  if (mcq.length < mix.mcq || short.length < mix.shortAnswer) {
+  if (mcq.length < mix.mcq || short.length < mix.shortAnswer || trueFalse.length < trueFalseCount) {
     const detail = dropped.length ? `; dropped ${dropped.join(", ")}` : "";
     throw new QuizOutputRejected(
-      `needed ${mix.mcq} mcq + ${mix.shortAnswer} short_answer, got ${mcq.length} + ${short.length} valid${detail}`,
+      `needed ${mix.mcq} mcq + ${mix.shortAnswer} short_answer, needed ${trueFalseCount} true_false; got ${trueFalse.length} true_false, ${mcq.length} mcq + ${short.length} short_answer valid${detail}`,
     );
   }
 
   // Keep the model's ordering among the questions that make the cut.
-  const keep = new Set<Candidate>([...mcq.slice(0, mix.mcq), ...short.slice(0, mix.shortAnswer)]);
+  const keep = new Set<Candidate>([...mcq.slice(0, mix.mcq), ...trueFalse.slice(0, trueFalseCount), ...short.slice(0, mix.shortAnswer)]);
   return valid.filter((q) => keep.has(q)).map((q, i) => ({ position: i + 1, ...q }));
 }

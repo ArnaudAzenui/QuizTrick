@@ -14,14 +14,14 @@ import { splitQuestionMix } from "@shared/utils/text";
 export interface GenerationPrompt {
   system: string;
   user: string;
-  /** The 70/30 split the parser holds the reply to (FR-3.3). */
-  mix: { mcq: number; shortAnswer: number };
+  /** Requested counts; omitted requests use the original 70/30 split. */
+  mix: { mcq: number; shortAnswer: number; trueFalse?: number };
 }
 
 const FENCE_TAG = /<\s*\/?\s*study_text\s*>/gi;
 
-export function buildPrompt(text: string, questionCount: number): GenerationPrompt {
-  const mix = splitQuestionMix(questionCount);
+export function buildPrompt(text: string, questionCount: number, requestedMix?: GenerationPrompt["mix"]): GenerationPrompt {
+  const mix: GenerationPrompt["mix"] = requestedMix ?? splitQuestionMix(questionCount);
 
   const system = [
     "You write study quizzes for students. You are given a study text inside <study_text> tags.",
@@ -30,6 +30,7 @@ export function buildPrompt(text: string, questionCount: number): GenerationProm
     `Write exactly ${questionCount} questions about the study text:`,
     `- exactly ${mix.mcq} multiple-choice questions ("mcq")`,
     `- exactly ${mix.shortAnswer} short-answer questions ("short_answer")`,
+    `- exactly ${mix.trueFalse ?? 0} true/false questions ("true_false")`,
     "",
     "Rules:",
     "- Every question must be answerable from the study text alone. Do not use outside knowledge.",
@@ -37,6 +38,7 @@ export function buildPrompt(text: string, questionCount: number): GenerationProm
     `- A multiple-choice question has exactly ${LIMITS.MCQ_OPTION_COUNT} different, non-empty options and exactly one correct option.`,
     "  Wrong options must be plausible. Do not use \"all of the above\" or \"none of the above\".",
     "  Vary the position of the correct option.",
+    '- A true/false question is a clear factual statement with type "true_false", options ["True","False"], and correctOption 0 for true or 1 for false. Include both true and false statements when possible.',
     `- A short-answer question has one expected answer of 1 to 5 words and at most ${LIMITS.SHORT_ANSWER_KEY_MAX} characters,`,
     "  such as a term, name, number or date taken from the text.",
     "- Write in the same language as the study text.",
@@ -44,6 +46,7 @@ export function buildPrompt(text: string, questionCount: number): GenerationProm
     "Reply with a single JSON object and nothing else, in this shape:",
     '{"questions":[',
     '  {"type":"mcq","text":"Question?","options":["A","B","C","D"],"correctOption":0},',
+    '  {"type":"true_false","text":"Statement.","options":["True","False"],"correctOption":0},',
     '  {"type":"short_answer","text":"Question?","expectedAnswer":"answer"}',
     "]}",
     "correctOption is the 0-based index of the correct option.",

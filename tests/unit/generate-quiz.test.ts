@@ -120,6 +120,22 @@ describe("generateQuiz", () => {
   });
 });
 
+describe("custom quiz generation", () => {
+  it("passes the selected mix through the provider and saves true/false choices", async () => {
+    complete.mockResolvedValue(JSON.stringify({ questions: [
+      { type: "mcq", text: "MCQ?", options: ["a", "b", "c", "d"], correctOption: 0 },
+      { type: "true_false", text: "Statement one.", options: ["True", "False"], correctOption: 0 },
+      { type: "true_false", text: "Statement two.", options: ["True", "False"], correctOption: 1 },
+      { type: "short_answer", text: "Short one?", expectedAnswer: "one" },
+      { type: "short_answer", text: "Short two?", expectedAnswer: "two" },
+    ] }));
+    await generateQuiz({ textId: TEXT_ID, questionCount: 5, questionMix: { mcq: 1, trueFalse: 2, shortAnswer: 2 } });
+    expect(complete.mock.calls[0][0].system).toContain("exactly 2 true/false");
+    const save = admin.rpc.mock.calls.find(([name]) => name === "create_quiz_with_questions")!;
+    expect(save[1].p_questions.filter((q: { options: string[] }) => q.options.length === 2)).toHaveLength(2);
+  });
+});
+
 describe("POST /api/generate", () => {
   const post = (body: unknown) => POST(new Request("http://localhost/api/generate", { method: "POST", body: JSON.stringify(body) }), undefined);
 

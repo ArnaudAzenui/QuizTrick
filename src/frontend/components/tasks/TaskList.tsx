@@ -65,7 +65,7 @@ function TaskRow({ task, onChanged, onDeleted }: { task: StudyTask } & Pick<Task
 
   const checkboxId = `done-${task.taskId}`;
   return (
-    <li className={`rounded-2xl border border-border bg-surface p-4 ${task.isComplete ? "opacity-75" : ""}`}>
+    <li className="rounded-2xl border border-border bg-surface p-4">
       <div className="flex items-start gap-3">
         <input
           id={checkboxId}

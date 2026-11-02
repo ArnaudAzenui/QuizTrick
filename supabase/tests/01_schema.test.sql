@@ -391,6 +391,13 @@ select qt_test.check((select count(*) from public.quizzes where owner_id = :'A')
                  and (select count(*) from public.attempts where owner_id = :'A') = 0,
   'deleting a text cascades to its quizzes, questions and attempts');
 
+select qt_test.check(public.valid_mcq_options('["True","False"]'::jsonb),
+  'canonical true/false choices are valid');
+select qt_test.check(not public.valid_mcq_options('["Yes","No"]'::jsonb),
+  'arbitrary two-option questions are rejected');
+select qt_test.check(not public.valid_mcq_options('["False","True"]'::jsonb),
+  'true/false choices have a fixed order');
+
 delete from auth.users where id = :'A';
 select qt_test.check((select count(*) from public.profiles where id = :'A') = 0
                  and (select count(*) from public.preferences where owner_id = :'A') = 0

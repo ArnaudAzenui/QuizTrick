@@ -68,7 +68,7 @@ export async function updateSession(request: NextRequest) {
     return redirectWithCookies(url);
   }
 
-  if (user && isAuthPage) {
+  if (user && (isAuthPage || pathname === ROUTES.home)) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.dashboard;
     url.search = "";
