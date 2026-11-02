@@ -2,11 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QuizRunner } from "@frontend/components/quiz/QuizRunner";
 import {
+  answeredPercent,
   buildAttemptAnswers,
   countAnswered,
   isAnswered,
+  isTypingTarget,
   leavesQuiz,
   optionLetter,
+  shortcutOptionIndex,
   submitAttempt,
   type LinkClick,
 } from "@frontend/components/quiz/quiz-runner";
@@ -137,5 +140,58 @@ describe("leavesQuiz (leave-page warning for in-app links)", () => {
     expect(leavesQuiz(click({ target: "_blank" }), here)).toBe(false);
     expect(leavesQuiz(click({ download: true }), here)).toBe(false);
     expect(leavesQuiz(click({ href: "https://example.com/" }), here)).toBe(false);
+  });
+});
+
+describe("shortcutOptionIndex (A/B/C/D keys)", () => {
+  it("maps a-d and A-D to the four options of a multiple-choice question", () => {
+    expect(shortcutOptionIndex("a", mcq)).toBe(0);
+    expect(shortcutOptionIndex("B", mcq)).toBe(1);
+    expect(shortcutOptionIndex("c", mcq)).toBe(2);
+    expect(shortcutOptionIndex("D", mcq)).toBe(3);
+  });
+
+  it("ignores other keys", () => {
+    expect(shortcutOptionIndex("e", mcq)).toBeNull();
+    expect(shortcutOptionIndex("1", mcq)).toBeNull();
+    expect(shortcutOptionIndex("Enter", mcq)).toBeNull();
+    expect(shortcutOptionIndex("ArrowDown", mcq)).toBeNull();
+  });
+
+  it("only works on four-option multiple choice, not short answer or true/false", () => {
+    expect(shortcutOptionIndex("a", short)).toBeNull();
+    expect(shortcutOptionIndex("a", { type: "mcq", options: ["True", "False"] })).toBeNull();
+  });
+});
+
+describe("isTypingTarget (shortcuts stay out of text fields)", () => {
+  it("treats text boxes, textareas, selects and editable areas as typing", () => {
+    expect(isTypingTarget({ tagName: "INPUT", type: "text" })).toBe(true);
+    expect(isTypingTarget({ tagName: "input" })).toBe(true);
+    expect(isTypingTarget({ tagName: "TEXTAREA" })).toBe(true);
+    expect(isTypingTarget({ tagName: "SELECT" })).toBe(true);
+    expect(isTypingTarget({ tagName: "DIV", isContentEditable: true })).toBe(true);
+  });
+
+  it("lets shortcuts through on radio buttons, buttons and the page itself", () => {
+    expect(isTypingTarget({ tagName: "INPUT", type: "radio" })).toBe(false);
+    expect(isTypingTarget({ tagName: "BUTTON" })).toBe(false);
+    expect(isTypingTarget({ tagName: "BODY" })).toBe(false);
+    expect(isTypingTarget(null)).toBe(false);
+  });
+});
+
+describe("answeredPercent (progress bar)", () => {
+  it("follows the x of y answered count", () => {
+    expect(answeredPercent(0, 10)).toBe(0);
+    expect(answeredPercent(3, 10)).toBe(30);
+    expect(answeredPercent(2, 3)).toBe(67);
+    expect(answeredPercent(10, 10)).toBe(100);
+  });
+
+  it("stays between 0 and 100 and handles an empty quiz", () => {
+    expect(answeredPercent(0, 0)).toBe(0);
+    expect(answeredPercent(12, 10)).toBe(100);
+    expect(answeredPercent(-1, 10)).toBe(0);
   });
 });

@@ -87,3 +87,39 @@ export function leavesQuiz(click: LinkClick, currentUrl: string): boolean {
   if (to.origin !== here.origin) return false;
   return to.pathname !== here.pathname || to.search !== here.search;
 }
+
+/**
+ * Keyboard shortcut for a multiple-choice question: A, B, C or D (either case)
+ * picks that option. Only four-option questions, the ones that show letters,
+ * take shortcuts; true/false and short answer return null.
+ */
+export function shortcutOptionIndex(key: string, question: Pick<PublicQuestion, "type" | "options">): number | null {
+  if (question.type !== "mcq" || question.options.length !== 4) return null;
+  if (key.length !== 1) return null;
+  const i = "abcd".indexOf(key.toLowerCase());
+  return i === -1 ? null : i;
+}
+
+/** What isTypingTarget needs to know about where a key press happened. */
+export type KeyTarget = { tagName?: string; type?: string; isContentEditable?: boolean } | null;
+
+const NON_TEXT_INPUTS = new Set(["radio", "checkbox", "button", "submit", "reset", "range", "color", "file", "image"]);
+
+/**
+ * True when the key press is going into something the student types in (a text
+ * box, textarea, select or editable area), so shortcuts must leave it alone.
+ */
+export function isTypingTarget(target: KeyTarget): boolean {
+  if (!target) return false;
+  if (target.isContentEditable) return true;
+  const tag = (target.tagName ?? "").toUpperCase();
+  if (tag === "TEXTAREA" || tag === "SELECT") return true;
+  if (tag === "INPUT") return !NON_TEXT_INPUTS.has((target.type ?? "text").toLowerCase());
+  return false;
+}
+
+/** Width of the progress bar, as a whole percent (0 when there are no questions). */
+export function answeredPercent(answered: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.round((Math.min(Math.max(answered, 0), total) / total) * 100);
+}
