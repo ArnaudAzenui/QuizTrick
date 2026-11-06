@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "QuizTrick for Canvas",
+  "version": "0.1.0",
+  "description": "Send a Canvas page, or the text you highlighted, to QuizTrick and turn it into a practice quiz.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "action": {
+    "default_title": "Send to QuizTrick",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://replace-with-production-url.invalid/*", "http://localhost:3000/*"],
+      "js": ["content/deliver.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

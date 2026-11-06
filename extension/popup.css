@@ -1,0 +1,28 @@
+/* Stub styles (A-6). H-7 replaces this file with the real design. */
+body {
+  width: 280px;
+  margin: 0;
+  padding: 16px;
+  font: 14px/1.4 system-ui, sans-serif;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+p {
+  margin: 0 0 12px;
+}
+
+button {
+  width: 100%;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+#target {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
