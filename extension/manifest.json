@@ -10,7 +10,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://replace-with-production-url.invalid/*", "http://localhost:3000/*"],
+      "matches": ["https://quiztrick.vercel.app/*", "http://localhost:3000/*"],
       "js": ["content/deliver.js"],
       "run_at": "document_idle"
     }

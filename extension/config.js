@@ -8,7 +8,7 @@
  */
 
 /** Where the deployed QuizTrick app lives. No trailing slash. */
-export const APP_URL = "https://replace-with-production-url.invalid";
+export const APP_URL = "https://quiztrick.vercel.app";
 
 /** The local dev server. Used only when a developer switches it on (see README). */
 export const LOCAL_URL = "http://localhost:3000";
