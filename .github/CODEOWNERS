@@ -13,6 +13,9 @@
 # than the author) can approve.
 /tests/             @ArnaudAzenui @AgbeleHillary @Zay2003-16 @mdfardinislamofficial
 
+# The Canvas browser extension has a piece from each of us — same rule as tests.
+/extension/         @ArnaudAzenui @AgbeleHillary @Zay2003-16 @mdfardinislamofficial
+
 # ---- Frontend: Hillary + Fardin ----
 /src/frontend/      @AgbeleHillary @mdfardinislamofficial
 /src/app/           @AgbeleHillary @mdfardinislamofficial
