@@ -23,7 +23,7 @@ afterAll(() => quiet.mockRestore());
 
 const TEXT_ID = "11111111-1111-4111-8111-111111111111";
 const QUIZ_ID = "22222222-2222-4222-8222-222222222222";
-const textRow = { id: TEXT_ID, owner_id: "user-1", title: "Cells", body: "x".repeat(300), char_count: 300, created_at: "2026-10-01T00:00:00Z" };
+const textRow = { id: TEXT_ID, owner_id: "user-1", title: "Cells", body: "Cells contain organelles. Mitochondria produce ATP through cellular respiration. The nucleus contains DNA and controls gene expression. Ribosomes build proteins. Membranes regulate movement of substances. Plant cells have chloroplasts for photosynthesis and a cell wall that provides structural support.", char_count: 300, created_at: "2026-10-01T00:00:00Z" };
 const quizRow = { id: QUIZ_ID, owner_id: "user-1", text_id: TEXT_ID, question_count: 5, created_at: "2026-10-04T00:00:00Z" };
 
 // 5 questions -> 4 mcq + 1 short answer (70/30, rounded).
@@ -150,4 +150,19 @@ describe("POST /api/generate", () => {
     expect(res.status).toBe(400);
     expect(complete).not.toHaveBeenCalled();
   });
+});
+
+it("rejects unusable source before spending quota or calling AI", async () => {
+  query.maybeSingle.mockResolvedValue({ data: { ...textRow, body: "nonsense ".repeat(80) }, error: null });
+  const error = await caught(generateQuiz({ textId: TEXT_ID, questionCount: 5 }));
+  expect(error.code).toBe("VALIDATION");
+  expect(complete).not.toHaveBeenCalled();
+  expect(admin.rpc).not.toHaveBeenCalled();
+});
+it("does not retry or save a quiz when AI finds the source unsuitable", async () => {
+  complete.mockResolvedValue(JSON.stringify({ contentStatus: "unsuitable", questions: [] }));
+  const error = await caught(generateQuiz({ textId: TEXT_ID, questionCount: 5 }));
+  expect(error.code).toBe("VALIDATION");
+  expect(complete).toHaveBeenCalledTimes(1);
+  expect(admin.rpc).not.toHaveBeenCalledWith("create_quiz_with_questions", expect.anything());
 });

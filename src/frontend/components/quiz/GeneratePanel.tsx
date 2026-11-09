@@ -118,7 +118,7 @@ export function GeneratePanel({ textId, hasQuizzes = false }: { textId: string; 
 
       {busy && (
         <p role="status" aria-live="polite" className="mt-3 text-sm text-muted">
-          Writing your quiz… this can take up to {LIMITS.GENERATION_TIMEOUT_MS / 1000} seconds ({elapsed}s). Please keep this page open.
+          Checking your study material and writing your quiz… this can take up to {LIMITS.GENERATION_TIMEOUT_MS / 1000} seconds ({elapsed}s). Please keep this page open.
         </p>
       )}
       {error && (

@@ -17,6 +17,7 @@ export const LIMITS = {
   TEXT_MAX_CHARS: 20_000,
   /** FR-2.2 (100 KB) */
   TEXT_FILE_MAX_BYTES: 100 * 1024,
+  DOCUMENT_FILE_MAX_BYTES: 4 * 1024 * 1024,
   TEXT_TITLE_MAX: 120,
 
   /** FR-3.2 / FR-3.3 */

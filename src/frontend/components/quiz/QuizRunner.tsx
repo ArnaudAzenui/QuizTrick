@@ -44,6 +44,13 @@ type Load = { state: "loading" } | { state: "error"; message: string } | { state
 export function QuizRunner({ quizId }: { quizId: string }) {
   const router = useRouter();
   const [load, setLoad] = useState<Load>({ state: "loading" });
+  const [mode, setMode] = useState<"standard" | "practice" | null>(null);
+  const [practiceSelected, setPracticeSelected] = useState(false);
+  const [feedback, setFeedback] = useState<Record<string, { response: string; isCorrect: boolean; hint: string }>>({});
+  const [checking, setChecking] = useState(false);
+  const checkingRef = useRef(false);
+  const [checkError, setCheckError] = useState<string>();
+  const [hints, setHints] = useState<Set<string>>(() => new Set());
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<AnswerMap>({});
   const [flagged, setFlagged] = useState<Set<string>>(() => new Set());
@@ -69,7 +76,25 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     void fetchQuiz();
   }, [fetchQuiz]);
 
+  const checkAnswer = useCallback(async (questionId: string, response: string) => {
+    if (!response.trim() || checkingRef.current) return;
+    checkingRef.current = true;
+    setChecking(true);
+    setCheckError(undefined);
+    try {
+      const result = await api.post<{ isCorrect: boolean; hint: string }>(`/api/quizzes/${quizId}/check`, { questionId, response });
+      setFeedback(previous => ({ ...previous, [questionId]: { ...result, response } }));
+    } catch (err) {
+      setCheckError(errorMessage(err, "We couldn't check your answer. Try again."));
+    } finally {
+      checkingRef.current = false;
+      setChecking(false);
+    }
+  }, [quizId]);
+
   const setAnswer = useCallback((questionId: string, response: string) => {
+    if (checkingRef.current) return;
+    setCheckError(undefined);
     setAnswers((prev) => ({ ...prev, [questionId]: response }));
     if (response.trim()) {
       setFlagged((previous) => {
@@ -81,11 +106,14 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     }
     setConfirming(false);
     setSubmitError(undefined);
-  }, []);
+    if (mode === "practice" && load.state === "ready" && load.data.questions.find(q => q.questionId === questionId)?.type === "mcq") {
+      void checkAnswer(questionId, response);
+    }
+  }, [mode, load, checkAnswer]);
 
   // A/B/C/D shortcuts for the question on screen (multiple choice only).
   useEffect(() => {
-    if (load.state !== "ready" || submitting) return;
+    if (load.state !== "ready" || submitting || mode === null || checking) return;
     const { questions } = load.data;
     const question = questions[Math.min(index, questions.length - 1)];
     if (!question) return;
@@ -99,7 +127,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [load, index, submitting, setAnswer]);
+  }, [load, index, submitting, mode, checking, setAnswer]);
 
   // UC-4 alternate flow: warn before leaving with unsubmitted answers.
   const hasProgress = flagged.size > 0 || Object.values(answers).some((a) => a.trim().length > 0);
@@ -184,11 +212,27 @@ export function QuizRunner({ quizId }: { quizId: string }) {
     );
   }
 
+  if (mode === null) {
+    return <section className="space-y-4 rounded-2xl border border-border bg-surface p-5">
+      <h1 className="text-2xl font-semibold">Set up your quiz</h1>
+      <p>{quiz.title ?? "Practice quiz"} · {total} questions</p>
+      <label className="flex items-start gap-3">
+        <input type="checkbox" checked={practiceSelected} onChange={event => setPracticeSelected(event.target.checked)} className="mt-1" />
+        <span><span className="block font-medium">Multiple attempts and hints</span>
+          <span className="text-sm text-muted">Retry questions as often as you need. Choices are checked immediately; use Check answer for short answers. Hints are available after a check.</span></span>
+      </label>
+      <p className="text-sm text-muted">Your final submitted answers determine your score, including answers corrected with hints.</p>
+      <button type="button" onClick={() => { startedAt.current = new Date().toISOString(); setMode(practiceSelected ? "practice" : "standard"); }} className="rounded-xl bg-primary px-5 py-2 font-medium text-primary-fg">Start quiz</button>
+    </section>;
+  }
+
   const current = questions[Math.min(index, total - 1)];
   const answered = countAnswered(questions, answers);
   const unanswered = total - answered;
   const isLast = index === total - 1;
   const value = answers[current.questionId] ?? "";
+  const currentFeedback = feedback[current.questionId];
+  const feedbackMatches = currentFeedback?.response === value;
   const currentIsFlagged = flagged.has(current.questionId);
   const flaggedQuestions = questions
     .map((question, questionIndex) => ({ question, questionIndex }))
@@ -204,12 +248,13 @@ export function QuizRunner({ quizId }: { quizId: string }) {
   }
 
   function goTo(next: number) {
+    if (checkingRef.current || submitting) return;
     setIndex(Math.max(0, Math.min(total - 1, next)));
     setConfirming(false);
   }
 
   async function submit() {
-    if (submitting) return;
+    if (submitting || checkingRef.current) return;
     setSubmitting(true);
     setSubmitError(undefined);
     try {
@@ -284,7 +329,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
               key={q.questionId}
               type="button"
               onClick={() => goTo(i)}
-              disabled={submitting}
+              disabled={submitting || checking}
               aria-current={active ? "step" : undefined}
               aria-label={`Question ${i + 1}${done ? ", answered" : ", not answered"}${isFlagged ? ", flagged for review" : ""}`}
               className={`relative h-9 w-9 rounded-full border text-sm font-medium ${
@@ -318,7 +363,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
                 key={question.questionId}
                 type="button"
                 onClick={() => goTo(questionIndex)}
-                disabled={submitting}
+                disabled={submitting || checking}
                 aria-current={questionIndex === index ? "step" : undefined}
                 className="rounded-lg border border-border px-3 py-2 text-sm hover:border-primary disabled:opacity-50"
               >
@@ -338,7 +383,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
         <button
           type="button"
           onClick={toggleFlag}
-          disabled={submitting}
+          disabled={submitting || checking}
           aria-pressed={currentIsFlagged}
           className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-primary hover:border-primary disabled:opacity-50"
         >
@@ -368,7 +413,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
                       value={String(i)}
                       checked={checked}
                       onChange={() => setAnswer(current.questionId, String(i))}
-                      disabled={submitting}
+                      disabled={submitting || checking}
                       className="mt-0.5"
                     />
                     <span>
@@ -397,7 +442,7 @@ export function QuizRunner({ quizId }: { quizId: string }) {
               maxLength={LIMITS.SHORT_ANSWER_RESPONSE_MAX}
               value={value}
               onChange={(e) => setAnswer(current.questionId, e.target.value)}
-              disabled={submitting}
+              disabled={submitting || checking}
               placeholder="Type your answer"
               aria-describedby={`sa-${current.questionId}-count`}
               className="mt-4 w-full rounded-xl border border-border bg-surface px-3 py-2 focus:border-primary"
@@ -405,6 +450,17 @@ export function QuizRunner({ quizId }: { quizId: string }) {
             <p id={`sa-${current.questionId}-count`} className="mt-1 text-xs text-muted">
               {value.length} / {LIMITS.SHORT_ANSWER_RESPONSE_MAX} characters
             </p>
+          </div>
+        )}
+
+        {mode === "practice" && (
+          <div className="mt-5 space-y-3">
+            {current.type === "short_answer" && <button type="button" disabled={checking || submitting || !value.trim()} onClick={() => void checkAnswer(current.questionId, value)} className="rounded-xl border border-border px-4 py-2 disabled:opacity-50">Check answer</button>}
+            {checking && <p role="status">Checking your answer...</p>}
+            {checkError && <div role="alert"><p>{checkError}</p><button type="button" disabled={checking || !value.trim()} onClick={() => void checkAnswer(current.questionId, value)} className="text-primary underline">Retry check</button></div>}
+            {feedbackMatches && <p role="status" className={currentFeedback.isCorrect ? "text-primary" : "text-danger"}>{currentFeedback.isCorrect ? "Correct!" : "Incorrect. Try another answer; you can retry as often as you need."}</p>}
+            {currentFeedback && <button type="button" onClick={() => setHints(previous => new Set(previous).add(current.questionId))} className="text-sm text-primary underline">Show hint</button>}
+            {hints.has(current.questionId) && currentFeedback && <p className="rounded-xl border border-border p-3 text-sm">Hint: {currentFeedback.hint}</p>}
           </div>
         )}
 
@@ -425,14 +481,14 @@ export function QuizRunner({ quizId }: { quizId: string }) {
           <button
             type="button"
             onClick={() => goTo(index - 1)}
-            disabled={index === 0 || submitting}
+            disabled={index === 0 || submitting || checking}
             className="rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium hover:border-primary disabled:opacity-50"
           >
             Previous
           </button>
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || checking}
             className="rounded-xl bg-primary px-5 py-2 text-sm font-medium text-primary-fg hover:opacity-90 disabled:opacity-60"
           >
             {isLast ? (submitting ? "Submitting…" : "Submit quiz") : "Next"}

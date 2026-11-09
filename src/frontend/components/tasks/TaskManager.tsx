@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ROUTES } from "@shared/constants";
 import { api, errorMessage } from "@frontend/lib/api-client";
 import type { StudyTask } from "@shared/types";
 import { TaskForm } from "./TaskForm";
@@ -20,6 +22,7 @@ type Load = { state: "loading" } | { state: "error"; message: string } | { state
  * screen doesn't refetch and flicker for every click.
  */
 export function TaskManager() {
+  const router = useRouter();
   const [scope, setScope] = useState<Scope>("today");
   const [load, setLoad] = useState<Load>({ state: "loading" });
 
@@ -40,7 +43,10 @@ export function TaskManager() {
     setLoad((prev) => (prev.state === "ready" ? { state: "ready", tasks: sortTasks(fn(prev.tasks)) } : prev));
   }
 
-  const onCreated = (task: StudyTask) => update((tasks) => [task, ...tasks]);
+  const onCreated = (task: StudyTask) => {
+    update((tasks) => [task, ...tasks]);
+    router.push(ROUTES.newText + "?from=task");
+  };
   const onChanged = (task: StudyTask) => update((tasks) => tasks.map((t) => (t.taskId === task.taskId ? task : t)));
   const onDeleted = (taskId: string) => update((tasks) => tasks.filter((t) => t.taskId !== taskId));
 

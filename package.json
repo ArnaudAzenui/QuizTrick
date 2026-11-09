@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=22"
+    "node": ">=22.13.0"
   },
   "description": "QuizTrick — AI-assisted study & quiz web application (CSC-4900 Capstone, Fall 2026)",
   "scripts": {
@@ -21,6 +21,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.4",
     "next": "^15.3.1",
+    "officeparser": "^8.4.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "server-only": "^0.0.1",

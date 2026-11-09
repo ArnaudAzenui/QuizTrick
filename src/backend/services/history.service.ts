@@ -9,7 +9,7 @@ type HistoryRow = {
   score: number;
   submitted_at: string;
   started_at: string;
-  quizzes: { study_texts: { title: string | null } | null } | null;
+  quizzes: { text_id?: string; study_texts: { title: string | null } | null } | null;
 };
 
 /** Invalid legacy timestamps should show unavailable, rather than a fabricated duration. */
@@ -24,7 +24,7 @@ export async function listHistory(): Promise<HistoryEntry[]> {
   const client = await createUserClient();
   const { data, error } = await client
     .from("attempts")
-    .select("id, quiz_id, score, started_at, submitted_at, quizzes(study_texts(title))")
+    .select("id, quiz_id, score, started_at, submitted_at, quizzes(text_id, study_texts(title))")
     .eq("owner_id", user.userId)
     .order("submitted_at", { ascending: false })
     .order("id", { ascending: false })
@@ -37,7 +37,9 @@ export async function listHistory(): Promise<HistoryEntry[]> {
 
   const rows = data ?? [];
   const best = new Map<string, number>();
-  for (const row of rows) best.set(row.quiz_id, Math.max(best.get(row.quiz_id) ?? -1, row.score));
+  // Regenerating a quiz should not create a second best score for the same topic.
+  const topicKey = (row: HistoryRow) => row.quizzes?.text_id ?? row.quiz_id;
+  for (const row of rows) best.set(topicKey(row), Math.max(best.get(topicKey(row)) ?? -1, row.score));
   return rows.map(row => ({
     attemptId: row.id,
     quizId: row.quiz_id,
@@ -45,6 +47,6 @@ export async function listHistory(): Promise<HistoryEntry[]> {
     score: row.score,
     submittedAt: row.submitted_at,
     durationSeconds: attemptDurationSeconds(row.started_at, row.submitted_at),
-    isBest: row.score === best.get(row.quiz_id),
+    isBest: row.score === best.get(topicKey(row)),
   }));
 }

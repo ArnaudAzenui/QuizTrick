@@ -96,3 +96,9 @@ describe("quiz study duration", () => {
     expect(attemptDurationSeconds("2026-10-19T12:05:00Z", "2026-10-19T12:00:00Z")).toBeNull();
   });
 });
+
+it("compares regenerated quizzes by source text, without merging unrelated texts with identical titles", async () => {
+  const topicRow = (id: string, quiz: string, text: string, score: number) => ({ ...row(id, quiz, score), quizzes: { text_id: text, study_texts: { title: "Biology" } } });
+  mocks.returns.mockResolvedValue({ data: [topicRow("a", "q1", "t1", 40), topicRow("b", "q2", "t1", 80), topicRow("c", "q3", "t2", 20)], error: null });
+  expect((await listHistory()).map(entry => entry.isBest)).toEqual([false, true, true]);
+});

@@ -43,6 +43,7 @@ function contentSecurityPolicy() {
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ["officeparser"],
   reactStrictMode: true,
   // Don't advertise the framework and version to scanners (SEC-1).
   poweredByHeader: false,

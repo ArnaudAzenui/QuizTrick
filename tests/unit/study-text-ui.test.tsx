@@ -17,7 +17,7 @@ describe("validateTextFile (FR-2.2, FR-2.3)", () => {
   });
 
   it("rejects other file types with a message naming the accepted type", () => {
-    for (const name of ["notes.pdf", "notes.docx", "notes.txt.exe", "notes"]) {
+    for (const name of ["notes.doc", "notes.ppt", "notes.txt.exe", "notes"]) {
       const result = validateTextFile({ name, size: 100 });
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.message).toContain(".txt");
@@ -47,7 +47,7 @@ describe("StudyTextEditor (FR-2.1 - FR-2.5)", () => {
   it("has a labelled paste area and a .txt-only file input", () => {
     expect(html).toMatch(/<textarea[^>]*id="body"/);
     expect(html).toContain('for="body"');
-    expect(html).toMatch(/<input[^>]*type="file"[^>]*accept="\.txt,text\/plain"/);
+    expect(html).toMatch(/<input[^>]*type="file"[^>]*accept="\.txt,\.docx,\.pdf,\.pptx"/);
   });
 
   it("shows the live character count against the maximum and what is still needed", () => {
@@ -87,8 +87,8 @@ describe("study text pages", () => {
     expect(html).not.toContain("Coming soon");
   });
 
-  it("add page renders the editor instead of the placeholder", () => {
-    const html = renderToStaticMarkup(<NewTextPage />);
+  it("add page renders the editor instead of the placeholder", async () => {
+    const html = renderToStaticMarkup(await NewTextPage({ searchParams: Promise.resolve({}) }));
     expect(html).toContain("Save study text");
     expect(html).not.toContain("Coming soon");
   });
@@ -99,4 +99,11 @@ describe("study text pages", () => {
     for (const href of [ROUTES.texts, ROUTES.tasks, ROUTES.timer, ROUTES.history]) expect(html).toContain(`href="${href}"`);
     expect(html).not.toContain("Coming soon");
   });
+});
+
+it("offers a skip link after a task is saved", async () => {
+  const html = renderToStaticMarkup(await NewTextPage({ searchParams: Promise.resolve({ from: "task" }) }));
+  expect(html).toContain("Task added.");
+  expect(html).toContain("Skip for now");
+  expect(html).toContain('href="/tasks"');
 });

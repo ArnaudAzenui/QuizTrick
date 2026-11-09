@@ -21,6 +21,7 @@ import type { generateQuizSchema } from "@backend/validation/schemas";
 import { getAiProvider } from "@backend/services/ai";
 import { getCurrentUser } from "@backend/services/auth.service";
 import { findOwnedText } from "@backend/services/text.service";
+import { assessContentQuality } from "@shared/utils/content-quality";
 import { LIMITS } from "@shared/constants";
 import type { Quiz } from "@shared/types";
 import { buildPrompt } from "./prompt";
@@ -108,6 +109,8 @@ export async function generateQuiz(input: z.infer<typeof generateQuizSchema>): P
   const user = await getCurrentUser();
   // Before the rate limit, so a stale or mistyped id doesn't cost quota.
   const text = await findOwnedText(user.userId, input.textId);
+  const quality = assessContentQuality(text.body);
+  if (quality.level === "unusable") throw AppError.validation(quality.message!);
   await enforceRateLimit(user.userId);
 
   const questions = await requestQuestions(text.body, input.questionCount, input.questionMix);
