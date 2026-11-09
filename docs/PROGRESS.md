@@ -32,17 +32,20 @@ Dr Mohan asked whether QuizTrick could pull study text out of Canvas. The team d
 
 Dependencies: H-7 needed A-6 (merged, so Hillary is unblocked). I-5 and F-6 depend on nothing. A-7 waits on all three. The checklist, the run record and the demo script live in `docs/EXTENSION-INTEGRATION.md`.
 
-## Status update — Nov 9, 2026 (PR #31 reviewed, demo tomorrow)
+## Status update — Nov 9, 2026 (PR #31 merged, demo tomorrow)
 
-Hillary opened PR #31 (`feat/quiz-practice-document-uploads`): Word/PDF/PowerPoint uploads parsed server-side with officeparser, a quiz setup screen with a practice mode (server-checked answers and hints via `POST /api/quizzes/:id/check`), best-score badges grouped by study text instead of by quiz, a redirect to Add study text after saving a task, and content-quality checks before generation. 33 files; typecheck, lint, 442 tests and the build pass; the Vercel preview deploys and both new routes answer correctly.
+Hillary opened PR #31 (`feat/quiz-practice-document-uploads`): Word/PDF/PowerPoint uploads parsed server-side with officeparser, a quiz setup screen with a practice mode (server-checked answers and hints via `POST /api/quizzes/:id/check`), best-score badges grouped by study text instead of by quiz, a redirect to Add study text after saving a task, and content-quality checks before generation. 33 files; typecheck, lint, 442 tests and the build pass; the Vercel preview deployed and both new routes answered correctly.
 
 Reviewed by Arnaud. Verdict: everything in it runs on the current setup. No new infrastructure, no migration, fits Vercel's body and function limits, Supabase and Gemini handle the extra load. The cost is team hours in weeks 13–15: each feature needs acceptance-test rows, a security row, a user-manual section and a cross-browser pass.
 
-Decision:
-- Demo on Nov 10 comes first. Main stays as it is until the Canvas extension has been presented. The PR stays open; no rework from Hillary for now.
-- After the demo, PR #31 merges with two conditions: a per-user rate limit on `POST /api/texts/extract` (a 4 MB file can take 20 s of server time per call, and the route has no cap), and both new routes documented in `docs/API.md`, noting that the check endpoint reveals right/wrong before submission. Team decision pending: whether attempts record practice vs standard mode so history can tell them apart (would need a small migration).
+Merged to main on Nov 9 (e6efa6b), the evening before the Nov 10 demo. Follow-ups, owner Hillary unless reassigned:
+- A per-user rate limit on `POST /api/texts/extract`. A 4 MB file can take 20 s of server time per call, and the route has no cap (SEC-6).
+- Both new routes documented in `docs/API.md`, noting that the check endpoint reveals right/wrong before submission.
+- Team decision pending: whether attempts record practice vs standard mode so history can tell them apart (would need a small migration).
 - Scope note for the final report: these features are beyond the SOW, same as true/false questions and the custom mix.
-- Conflict to expect: the PR rewrites the file-note area of `StudyTextEditor.tsx`, where F-6 adds the "Imported from Canvas" note. Whichever lands second rebases.
+- Rows for the new routes in `docs/ITERATION3-VERIFICATION.md` Part C (auth, cross-user, upload size, bad file), and the extraction route in A-4's security pass.
+
+Demo impact: every quiz now starts with a "Set up your quiz" screen, and the Add study text page accepts .docx/.pdf/.pptx. The demo script in `docs/EXTENSION-INTEGRATION.md` Part D should include the setup screen click. F-6 now builds on the new `StudyTextEditor.tsx` (the file-note area changed).
 
 Extension status: skeleton (A-6, #29) and the A-7 checklist (#30) are on main. I-5, H-7 and F-6 have no branches yet. Without F-6 the editor does not receive the text, so an end-to-end demo on Nov 10 depends on it landing first.
 
