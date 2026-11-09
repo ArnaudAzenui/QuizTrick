@@ -34,7 +34,7 @@ import {
 import { idSchema, type submitAttemptSchema } from "@backend/validation/schemas";
 import type { Attempt, AttemptReview } from "@shared/types";
 import { getCurrentUser } from "./auth.service";
-import { gradeAttempt } from "./grading.service";
+import { gradeAttempt, isCorrect } from "./grading.service";
 
 const QUIZ_COLUMNS = "id, owner_id, text_id, question_count, created_at";
 const QUESTION_COLUMNS = "id, quiz_id, position, type, text, options, correct_option, expected_answer";
@@ -200,4 +200,31 @@ export async function getAttemptReview(attemptId: string): Promise<AttemptReview
       return { question: toQuestion(q), response: record?.response ?? "", isCorrect: record?.is_correct ?? false };
     }),
   };
+}
+
+/** Check ownership before reading keys; return feedback without exposing the answer. */
+export async function checkPracticeAnswer(quizId: string, questionId: string, response: string) {
+  if (!idSchema.safeParse(quizId).success) throw quizMissing();
+  const user = await getCurrentUser();
+  const client = await createUserClient();
+  const { data: quiz, error } = await client.from("quizzes").select("id")
+    .eq("id", quizId).eq("owner_id", user.userId).maybeSingle();
+  if (error) throw AppError.internal("We couldn't check your answer. Please try again.");
+  if (!quiz) throw quizMissing();
+  const rows = await loadQuestionsWithKeys(quizId);
+  const row = rows.find(question => question.id === questionId);
+  if (!row) throw AppError.notFound("That question");
+  const question = toQuestion(row);
+  const correct = isCorrect(question, response);
+  // Hints give a small nudge rather than sending the answer key to the browser.
+  const eliminated = question.options.findIndex((_, index) => index !== question.correctOption && String(index) !== response.trim());
+  const expected = question.expectedAnswer?.trim() ?? "";
+  const hint = question.type === "mcq"
+    ? eliminated >= 0
+      ? `You can rule out option ${String.fromCharCode(65 + eliminated)}: ${question.options[eliminated]}`
+      : "For true or false, check whether every part of the statement agrees with your notes."
+    : expected
+      ? `The answer starts with “${expected[0]}” and contains ${expected.split(/\s+/u).length} word(s).`
+      : "Look for a short phrase in your notes that answers the question.";
+  return { isCorrect: correct, hint };
 }

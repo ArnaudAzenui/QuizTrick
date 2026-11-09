@@ -10,7 +10,7 @@ const admin = vi.hoisted(() => ({ from: vi.fn(), select: vi.fn(), eq: vi.fn(), o
 vi.mock("@backend/supabase/server", () => ({ createUserClient: async () => ({ auth, from: query.from }) }));
 vi.mock("@backend/supabase/admin", () => ({ createAdminClient: () => ({ from: admin.from, rpc: admin.rpc }) }));
 
-import { getAttemptReview, submitAttempt } from "@backend/services/attempt.service";
+import { checkPracticeAnswer, getAttemptReview, submitAttempt } from "@backend/services/attempt.service";
 import { POST } from "@/app/api/quizzes/[id]/attempts/route";
 import { GET } from "@/app/api/attempts/[id]/route";
 import { AppError } from "@backend/lib/errors";
@@ -286,5 +286,28 @@ describe("getAttemptReview (FR-4.6)", () => {
     expect(json.data.attempt.score).toBe(67);
     expect(json.data.items).toHaveLength(3);
     expect(json.data.items[1].question.expectedAnswer).toBe("Oxygen");
+  });
+});
+
+describe("practice feedback", () => {
+  beforeEach(() => query.maybeSingle.mockReset().mockResolvedValue({ data: { id: QUIZ_ID }, error: null }));
+  it("allows an incorrect answer to be retried without saving an attempt or exposing keys", async () => {
+    const wrong = await checkPracticeAnswer(QUIZ_ID, Q1, "0");
+    expect(wrong.isCorrect).toBe(false);
+    expect(wrong.hint).toContain("Ribosome");
+    expect(wrong).not.toHaveProperty("correctOption");
+    expect((await checkPracticeAnswer(QUIZ_ID, Q1, "1")).isCorrect).toBe(true);
+    expect(admin.rpc).not.toHaveBeenCalled();
+  });
+  it("uses the final grading normalization for short answers", async () => {
+    expect((await checkPracticeAnswer(QUIZ_ID, Q2, " oxygen. ")).isCorrect).toBe(true);
+  });
+  it("rejects someone else's quiz before reading answer keys", async () => {
+    query.maybeSingle.mockResolvedValue({ data: null, error: null });
+    expect((await caught(checkPracticeAnswer(QUIZ_ID, Q1, "0"))).code).toBe("NOT_FOUND");
+    expect(admin.from).not.toHaveBeenCalled();
+  });
+  it("rejects questions that do not belong to the quiz", async () => {
+    expect((await caught(checkPracticeAnswer(QUIZ_ID, ATTEMPT_ID, "0"))).code).toBe("NOT_FOUND");
   });
 });

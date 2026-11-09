@@ -99,6 +99,10 @@ export function parseGeneratedQuiz(raw: string, mix: { mcq: number; shortAnswer:
   }
 
   // Accept a bare array too: it's an unambiguous answer, just unwrapped.
+  if (isRecord(parsed) && parsed.contentStatus === "unsuitable") {
+    // This is a source problem, not malformed AI output: retries would waste quota.
+    throw AppError.validation("This material doesn't contain enough clear study information for this quiz. Review the text, add more facts, or choose fewer questions.");
+  }
   const list = Array.isArray(parsed) ? parsed : isRecord(parsed) ? parsed.questions : undefined;
   if (!Array.isArray(list)) throw new QuizOutputRejected("reply has no questions array");
 

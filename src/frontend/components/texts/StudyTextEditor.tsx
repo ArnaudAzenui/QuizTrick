@@ -8,6 +8,8 @@ import { FormField } from "@frontend/components/FormField";
 import { LIMITS, ROUTES } from "@shared/constants";
 import type { StudyText } from "@shared/types";
 import { validateStudyText } from "@shared/utils/text";
+import { assessContentQuality } from "@shared/utils/content-quality";
+import { STUDY_FILE_ACCEPT } from "@shared/utils/study-file";
 import { titleFromFileName, validateTextFile } from "./text-file";
 
 /**
@@ -26,14 +28,17 @@ export function StudyTextEditor() {
   const [bodyError, setBodyError] = useState<string>();
   const [titleError, setTitleError] = useState<string>();
   const [formError, setFormError] = useState<string>();
+  const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const check = validateStudyText(body);
+  const quality = assessContentQuality(body);
   const tooLong = check.charCount > LIMITS.TEXT_MAX_CHARS;
   const remainingToMin = Math.max(0, LIMITS.TEXT_MIN_CHARS - check.charCount);
 
   async function onFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     setFileError(undefined);
     setFileNote(undefined);
     if (!file) return;
@@ -43,17 +48,29 @@ export function StudyTextEditor() {
       event.target.value = "";
       return;
     }
+    setReading(true);
     try {
-      const text = await file.text();
+      let text: string;
+      if (file.name.toLowerCase().endsWith(".txt")) {
+        text = await file.text();
+      } else {
+        const form = new FormData();
+        form.append("file", file);
+        const response = await fetch("/api/texts/extract", { method: "POST", body: form, credentials: "same-origin" });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error?.message ?? "We couldn't read that document.");
+        text = result.data.text;
+      }
       setBody(text);
       setBodyError(undefined);
       if (!title.trim()) setTitle(titleFromFileName(file.name));
       setFileNote(`Loaded ${file.name}. Review it below before saving.`);
-    } catch {
-      setFileError("We couldn't read that file. Try again, or paste the text instead.");
+    } catch (err) {
+      setFileError(errorMessage(err, "We couldn't read that file. Try again, or paste the text instead."));
     } finally {
       // Lets the same file be chosen again after an edit or a clear.
-      event.target.value = "";
+      input.value = "";
+      setReading(false);
     }
   }
 
@@ -69,7 +86,7 @@ export function StudyTextEditor() {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || reading) return;
     setBodyError(undefined);
     setTitleError(undefined);
     setFormError(undefined);
@@ -104,27 +121,28 @@ export function StudyTextEditor() {
         maxLength={LIMITS.TEXT_TITLE_MAX}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        disabled={busy}
+        disabled={busy || reading}
         error={titleError}
       />
 
       <div>
         <label htmlFor="file" className="block text-sm font-medium">
-          Upload a .txt file
+          Upload study material
         </label>
         <input
           id="file"
           name="file"
           type="file"
-          accept=".txt,text/plain"
+          accept={STUDY_FILE_ACCEPT}
           onChange={onFile}
-          disabled={busy}
+          disabled={busy || reading}
           aria-describedby={fileError ? "file-error" : "file-hint"}
           className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-xl file:border file:border-border file:bg-surface file:px-3 file:py-2 file:text-sm file:font-medium file:text-fg"
         />
         <p id="file-hint" className="mt-1 text-xs text-muted">
-          Plain text only, up to {Math.round(LIMITS.TEXT_FILE_MAX_BYTES / 1024)} KB. The file is loaded into the box below so you can review it.
+          Word (.docx), PDF, or PowerPoint (.pptx) up to 4 MB; plain text (.txt) up to 100 KB. Review the extracted text below. Scans and images need OCR first. Save up to 20,000 characters at a time.
         </p>
+        {reading && <p role="status" className="mt-1 text-sm text-muted">Reading your document...</p>}
         {fileNote && (
           <p role="status" className="mt-1 text-sm text-muted">
             {fileNote}
@@ -151,7 +169,7 @@ export function StudyTextEditor() {
             setBody(e.target.value);
             setBodyError(undefined);
           }}
-          disabled={busy}
+          disabled={busy || reading}
           placeholder="Paste your notes here…"
           aria-invalid={bodyError ? true : undefined}
           aria-describedby={bodyError ? "body-error body-count" : "body-count"}
@@ -162,6 +180,7 @@ export function StudyTextEditor() {
           {remainingToMin > 0 && ` · ${remainingToMin.toLocaleString()} more needed (minimum ${LIMITS.TEXT_MIN_CHARS})`}
           {tooLong && " · too long"}
         </p>
+        {quality.message && <p role="status" className="mt-2 rounded-xl border border-warning/50 bg-warning/10 px-3 py-2 text-sm">{quality.message}</p>}
         {bodyError && (
           <p id="body-error" role="alert" className="mt-1 text-sm text-danger">
             {bodyError}
@@ -178,7 +197,7 @@ export function StudyTextEditor() {
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || reading}
           className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-fg hover:opacity-90 disabled:opacity-60"
         >
           {busy ? "Saving…" : "Save study text"}
@@ -186,7 +205,7 @@ export function StudyTextEditor() {
         <button
           type="button"
           onClick={clear}
-          disabled={busy || (!body && !title)}
+          disabled={busy || reading || (!body && !title)}
           className="rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium hover:border-primary disabled:opacity-60"
         >
           Clear
