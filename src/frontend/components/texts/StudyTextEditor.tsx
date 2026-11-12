@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiClientError, errorMessage } from "@frontend/lib/api-client";
@@ -11,6 +11,7 @@ import { validateStudyText } from "@shared/utils/text";
 import { assessContentQuality } from "@shared/utils/content-quality";
 import { STUDY_FILE_ACCEPT } from "@shared/utils/study-file";
 import { titleFromFileName, validateTextFile } from "./text-file";
+import { applyImport, IMPORT_MESSAGES, IMPORT_NOTE, isExtensionImportUrl, parseImportMessage } from "./extension-import";
 
 /**
  * Paste or upload study text and save it (FR-2.1 - FR-2.7, WBS 1.4.2).
@@ -18,6 +19,11 @@ import { titleFromFileName, validateTextFile } from "./text-file";
  * The character count uses validateStudyText(), the same function the API
  * runs, so the number on screen is the number the server will check.
  * On success the student lands on the saved text, where they can generate a quiz.
+ *
+ * Opened by the Canvas extension (/texts/new?from=extension), the editor asks
+ * the extension for the captured text and fills in the form with it (F-6). It
+ * never saves by itself and never replaces text the student already typed.
+ * The checks live in ./extension-import.ts.
  */
 export function StudyTextEditor() {
   const router = useRouter();
@@ -30,6 +36,36 @@ export function StudyTextEditor() {
   const [formError, setFormError] = useState<string>();
   const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Latest form values for the message listener, which is set up once.
+  const formRef = useRef({ title, body });
+  useEffect(() => {
+    formRef.current = { title, body };
+  }, [title, body]);
+
+  // Canvas extension handoff (F-6). Only when the extension opened this page.
+  useEffect(() => {
+    if (!isExtensionImportUrl(window.location.search)) return;
+    const origin = window.location.origin;
+    const onMessage = (event: MessageEvent) => {
+      const incoming = parseImportMessage(event, { window, origin });
+      if (!incoming) return;
+      const next = applyImport(formRef.current, incoming);
+      if (!next) return;
+      // Update the ref right away so a second import message is dropped too.
+      formRef.current = next;
+      setTitle(next.title);
+      setBody(next.body);
+      setBodyError(undefined);
+      setFileError(undefined);
+      setFileNote(IMPORT_NOTE);
+      window.postMessage({ type: IMPORT_MESSAGES.received }, origin);
+    };
+    window.addEventListener("message", onMessage);
+    // The extension may have loaded first, so ask for the text as well.
+    window.postMessage({ type: IMPORT_MESSAGES.request }, origin);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   const check = validateStudyText(body);
   const quality = assessContentQuality(body);
