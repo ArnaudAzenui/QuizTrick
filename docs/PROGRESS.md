@@ -49,6 +49,12 @@ Demo impact: every quiz now starts with a "Set up your quiz" screen, and the Add
 
 Extension status: skeleton (A-6, #29) and the A-7 checklist (#30) are on main. I-5, H-7 and F-6 have no branches yet. Without F-6 the editor does not receive the text, so an end-to-end demo on Nov 10 depends on it landing first.
 
+## Status update — Nov 14, 2026 (extension: four of five pieces on main)
+
+Merged: F-6 (Fardin, #33, Nov 12) and I-5 (Isaiah, #34, Nov 14), both reviewed against Part A of `docs/EXTENSION-INTEGRATION.md` and both clean. H-7 (the popup) had no branch by Nov 14, three days past its date, so to keep the extension on schedule Arnaud built the popup inside the A-7 PR: `extension/lib/popup-state.js` (pure state function: ready / too short / too long / can't read this page, counts by code point, limits asserted equal to `src/shared/constants.ts`), `popup.html`, `popup.css` (app tokens, light and dark via `prefers-color-scheme`), and `popup.js` wired to Isaiah's `extractFromPage()`. The stub page reader and sample text are gone. README rewritten. Deployed URL confirmed equal to `APP_URL` and the manifest.
+
+Still open for the extension: Part C, the run on a real Canvas page in Chrome and Edge, and the demo. Housekeeping: delete the merged `feat/ext-extract`, `feat/ext-import-editor` and `docs/pr31-record` branches.
+
 ## 1. What is done (per WBS)
 
 | WBS | Element | State |
