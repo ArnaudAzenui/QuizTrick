@@ -5,12 +5,21 @@
     <title>QuizTrick</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
-  <body>
-    <!-- Stub popup (A-6). It proves the handoff works; H-7 replaces it. -->
-    <h1>QuizTrick</h1>
-    <p id="status" role="status">Highlight some text on the page, or send the sample text.</p>
-    <button id="send" type="button">Send to QuizTrick</button>
-    <p id="target" hidden></p>
+  <body data-state="reading">
+    <header class="header">
+      <h1 class="brand">QuizTrick</h1>
+      <p id="source" class="source"></p>
+    </header>
+
+    <main class="main">
+      <p id="title" class="title" hidden></p>
+      <pre id="preview" class="preview" hidden></pre>
+      <p id="count" class="count" aria-live="polite"></p>
+      <p id="status" class="status" role="status" data-tone="muted">Reading this page…</p>
+      <button id="send" class="send" type="button" disabled>Send to QuizTrick</button>
+      <p id="target" class="target" hidden></p>
+    </main>
+
     <script type="module" src="popup.js"></script>
   </body>
 </html>

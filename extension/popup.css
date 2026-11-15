@@ -1,28 +1,170 @@
-/* Stub styles (A-6). H-7 replaces this file with the real design. */
+/*
+ * Popup styles (H-7). The colour tokens are the app's, copied from
+ * src/frontend/styles/globals.css, so the popup looks like QuizTrick in both
+ * themes. The popup cannot read the app's saved theme, so it follows the OS.
+ */
+:root {
+  --qt-bg: 247 248 250;
+  --qt-surface: 255 255 255;
+  --qt-border: 125 134 148;
+  --qt-fg: 26 31 43;
+  --qt-muted: 91 100 112;
+  --qt-primary: 47 91 234;
+  --qt-primary-fg: 255 255 255;
+  --qt-success: 20 112 53;
+  --qt-danger: 190 30 45;
+  --qt-warning: 158 96 0;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --qt-bg: 15 18 24;
+    --qt-surface: 24 28 37;
+    --qt-border: 113 124 141;
+    --qt-fg: 232 235 240;
+    --qt-muted: 163 173 186;
+    --qt-primary: 124 156 255;
+    --qt-primary-fg: 15 18 24;
+    --qt-success: 94 214 138;
+    --qt-danger: 255 122 133;
+    --qt-warning: 255 196 77;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-  width: 280px;
+  width: 340px;
   margin: 0;
-  padding: 16px;
-  font: 14px/1.4 system-ui, sans-serif;
+  background: rgb(var(--qt-bg));
+  color: rgb(var(--qt-fg));
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-h1 {
-  margin: 0 0 8px;
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgb(var(--qt-border) / 0.35);
+}
+
+.brand {
+  margin: 0;
   font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: rgb(var(--qt-primary));
 }
 
-p {
-  margin: 0 0 12px;
+.source {
+  margin: 0;
+  font-size: 12px;
+  color: rgb(var(--qt-muted));
+  white-space: nowrap;
 }
 
-button {
-  width: 100%;
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px 16px;
+}
+
+.title {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.preview {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid rgb(var(--qt-border) / 0.5);
+  border-radius: 0.875rem;
+  background: rgb(var(--qt-surface));
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.count {
+  margin: 0;
+  font-size: 12px;
+  color: rgb(var(--qt-muted));
+}
+
+body[data-state="long"] .count {
+  color: rgb(var(--qt-danger));
+}
+
+.status {
+  margin: 0;
   padding: 8px 12px;
+  border-radius: 0.875rem;
+  border: 1px solid transparent;
+  font-size: 13px;
+}
+
+.status[data-tone="muted"] {
+  color: rgb(var(--qt-muted));
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.status[data-tone="ok"] {
+  color: rgb(var(--qt-success));
+  border-color: rgb(var(--qt-success) / 0.4);
+  background: rgb(var(--qt-success) / 0.08);
+}
+
+.status[data-tone="warn"] {
+  color: rgb(var(--qt-warning));
+  border-color: rgb(var(--qt-warning) / 0.5);
+  background: rgb(var(--qt-warning) / 0.1);
+}
+
+.status[data-tone="error"] {
+  color: rgb(var(--qt-danger));
+  border-color: rgb(var(--qt-danger) / 0.4);
+  background: rgb(var(--qt-danger) / 0.1);
+}
+
+.send {
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 0.875rem;
+  background: rgb(var(--qt-primary));
+  color: rgb(var(--qt-primary-fg));
   font: inherit;
+  font-weight: 600;
   cursor: pointer;
 }
 
-#target {
-  margin: 12px 0 0;
+.send:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.send:focus-visible {
+  outline: 2px solid rgb(var(--qt-primary));
+  outline-offset: 2px;
+}
+
+.send:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.target {
+  margin: 0;
   font-size: 12px;
+  color: rgb(var(--qt-warning));
 }
