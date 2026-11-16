@@ -1,12 +1,3 @@
-/**
- * The popup (H-7): reads the current tab with extractFromPage(), shows what it
- * found, and hands it to QuizTrick with sendToQuizTrick().
- *
- * Clicking the toolbar icon grants `activeTab` for that tab, which is what
- * lets chrome.scripting.executeScript run the extractor there. The popup
- * closes when a new tab opens, so the text is stored before the tab is created
- * (see lib/handoff.js). What each state says is decided in lib/popup-state.js.
- */
 import { APP_URL } from "./config.js";
 import { extractFromPage } from "./lib/extract.js";
 import { resolveAppUrl, sendToQuizTrick } from "./lib/handoff.js";
@@ -22,7 +13,7 @@ const ui = {
   target: document.getElementById("target"),
 };
 
-/** What the current tab offers, or null on pages Chrome will not let us read. */
+// Some browser pages do not allow extensions to read them.
 async function capture() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -53,11 +44,11 @@ function showError(message) {
   ui.status.dataset.tone = "error";
 }
 
-/** The last capture, so Send does not have to read the page a second time. */
+// Send the same text shown in the preview.
 let current = null;
 
 ui.send.addEventListener("click", async () => {
-  if (!current) return;
+  if (!current || ui.send.disabled) return;
   ui.send.disabled = true;
   ui.status.textContent = "Sending…";
   ui.status.dataset.tone = "muted";
@@ -74,9 +65,11 @@ ui.send.addEventListener("click", async () => {
   render(describeCapture(current));
 })();
 
-// Say so when this browser is pointed at the dev server, so nobody demos against it by accident.
+// Show the address when using the local app.
 resolveAppUrl().then((appUrl) => {
   if (appUrl === APP_URL) return;
   ui.target.textContent = `Developer mode: sending to ${appUrl}`;
   ui.target.hidden = false;
+}).catch(() => {
+  // The popup can still show the preview if the app address is unavailable.
 });
