@@ -1,19 +1,11 @@
-/**
- * What the popup shows for a capture, as a pure function so it can be tested
- * without a browser (H-7). popup.js only renders what this returns.
- *
- * The limits repeat LIMITS.TEXT_MIN_CHARS and LIMITS.TEXT_MAX_CHARS from
- * src/shared/constants.ts, which this file cannot import.
- * tests/unit/extension-popup.test.ts fails if they drift.
- */
-
+// Keep these limits in sync with the study text editor.
 export const TEXT_MIN_CHARS = 200;
 export const TEXT_MAX_CHARS = 20_000;
 
-/** How much of the text the popup previews, in characters. */
+// Show a short preview without changing the text we send.
 export const PREVIEW_CHARS = 500;
 
-/** Counts characters the way the editor does: by code point, so an emoji is 1. */
+// Count characters the same way as the editor.
 export function countCharacters(text) {
   return [...String(text ?? "")].length;
 }
@@ -26,7 +18,6 @@ const SOURCE_LABELS = {
   content: "Page content",
 };
 
-/** The first PREVIEW_CHARS characters, with an ellipsis when there is more. */
 export function previewOf(body) {
   const characters = [...String(body ?? "")];
   if (characters.length <= PREVIEW_CHARS) return characters.join("");

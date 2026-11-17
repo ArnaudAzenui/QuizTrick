@@ -1,8 +1,4 @@
-/*
- * Popup styles (H-7). The colour tokens are the app's, copied from
- * src/frontend/styles/globals.css, so the popup looks like QuizTrick in both
- * themes. The popup cannot read the app's saved theme, so it follows the OS.
- */
+/* Follow the system theme, using the same colors as the app. */
 :root {
   --qt-bg: 247 248 250;
   --qt-surface: 255 255 255;
