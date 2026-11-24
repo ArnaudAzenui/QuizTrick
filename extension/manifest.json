@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "QuizTrick for Canvas",
-  "version": "0.1.0",
-  "description": "Send a Canvas page, or the text you highlighted, to QuizTrick and turn it into a practice quiz.",
+  "version": "0.2.0",
+  "description": "Send a Canvas page, a Word, PDF or PowerPoint file on it, or the text you highlighted, to QuizTrick and turn it into a practice quiz.",
   "permissions": ["activeTab", "scripting", "storage"],
   "action": {
     "default_title": "Send to QuizTrick",

@@ -86,6 +86,22 @@ Use a real course. Record what the popup showed and what landed in the editor. W
 | C15 | Repeat C1–C3 in **Edge**. | Same as Chrome. | | ☐ |
 | C16 | Open `/texts/new` with **no** `?from=extension`, post an import from the console. | Ignored. | | ☐ |
 
+Files (added Nov 23). Reload the extension and any open QuizTrick tab first. Migration 0004 must be applied. The Nov 23 results below were run against a local app (`npm run dev`) before the editor change was deployed; repeat C18 once on production after the merge.
+
+| # | Do | Expected | Result | OK |
+|---|---|---|---|---|
+| C17 | Modules → a **PowerPoint** (`.pptx`, under 4 MB). Click the icon. | "Files on this page" lists the file. The status points at it; Send is disabled. | Listed as expected. Chrome, local app, canvas.uncp.edu, Nov 23 | ☑ |
+| C18 | Click the file. | "Getting … from Canvas…", then a new tab on `/texts/new?from=extension`. "Reading your document..." shows, then the slide text and the title (file name without `.pptx`) are filled in, with "Imported <name> from Canvas. Review it below before saving." Nothing is saved yet. | Slide text and title filled in. Chrome, local app, canvas.uncp.edu, Nov 23 | ☑ |
+| C19 | Save study text, then Generate quiz. | Saves and generates as usual. | | ☐ |
+| C20 | Repeat C17–C18 with a **PDF** and a **Word** (`.docx`) file. | Same. | PDF and .docx both read. Chrome, local app, canvas.uncp.edu, Nov 23 | ☑ |
+| C21 | Open a page or assignment that **links** to a file. Click the icon. | The page text is offered as before, and the linked file is listed below it. Clicking the file sends the file, not the page. | | ☐ |
+| C22 | A file over 4 MB, and an old `.ppt` or `.doc`. | The popup says why (too large / not a type QuizTrick reads). No tab opens. | | ☐ |
+| C23 | **Signed out**, send a file. | Lands on `/login`; after signing in, the editor reads the file. | | ☐ |
+| C24 | A scanned PDF (pictures of pages). | The editor says no readable text was found. The form stays empty. | | ☐ |
+| C25 | Repeat C17–C18 in **Edge**. | Same as Chrome. | | ☐ |
+
+If C18 shows "Couldn't get … from Canvas", note it under Findings with the file's type: Canvas hands the download to a separate file server, and that server has to allow the request.
+
 Console import for C12 and C16:
 
 ```js

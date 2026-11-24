@@ -25,12 +25,21 @@ export const IMPORT_PATH = "/texts/new?from=extension";
 /** A captured text older than this is thrown away instead of delivered. */
 export const IMPORT_MAX_AGE_MS = 10 * 60 * 1000;
 
+/**
+ * The app's upload limits for a Canvas file, repeated from src/shared/constants.ts
+ * (DOCUMENT_FILE_MAX_BYTES, TEXT_FILE_MAX_BYTES). tests/unit/extension-files.test.ts
+ * fails if they drift.
+ */
+export const FILE_LIMITS = { maxBytes: 4 * 1024 * 1024, textMaxBytes: 100 * 1024 };
+
 /** `window.postMessage` types exchanged between `content/deliver.js` and the editor. */
 export const MESSAGES = {
   /** editor -> extension: "I am ready, do you have a text for me?" */
   request: "quiztrick:import-request",
   /** extension -> editor: `{ type, title, body, sourceUrl }` */
   import: "quiztrick:import",
+  /** extension -> editor, for a Canvas file: `{ type, name, mimeType, dataBase64, sourceUrl }` */
+  importFile: "quiztrick:import-file",
   /** editor -> extension: "got it, you can forget it now" */
   received: "quiztrick:import-received",
 };

@@ -34,3 +34,25 @@ export async function sendToQuizTrick({ title, body, sourceUrl }) {
   await chrome.storage.local.set({ [STORAGE_KEY]: pending });
   await chrome.tabs.create({ url: (await resolveAppUrl()) + IMPORT_PATH });
 }
+
+/**
+ * Hands a file downloaded from Canvas to QuizTrick the same way: stores it,
+ * then opens the Add study text page, which reads it exactly as if the student
+ * had chosen the file there. It replaces any text still waiting to be delivered.
+ *
+ * @param {{ name: string, mimeType?: string, dataBase64: string, sourceUrl?: string }} file
+ * @returns {Promise<void>}
+ */
+export async function sendFileToQuizTrick({ name, mimeType, dataBase64, sourceUrl }) {
+  if (typeof name !== "string" || !name.trim() || typeof dataBase64 !== "string" || !dataBase64) {
+    throw new Error("There is no file to send.");
+  }
+
+  const pending = {
+    file: { name, mimeType: typeof mimeType === "string" ? mimeType : "", dataBase64 },
+    sourceUrl: typeof sourceUrl === "string" ? sourceUrl : "",
+    capturedAt: Date.now(),
+  };
+  await chrome.storage.local.set({ [STORAGE_KEY]: pending });
+  await chrome.tabs.create({ url: (await resolveAppUrl()) + IMPORT_PATH });
+}

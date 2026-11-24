@@ -10,7 +10,7 @@ import {
   MESSAGES,
   STORAGE_KEY,
 } from "../../extension/config.js";
-import { resolveAppUrl, sendToQuizTrick } from "../../extension/lib/handoff.js";
+import { resolveAppUrl, sendFileToQuizTrick, sendToQuizTrick } from "../../extension/lib/handoff.js";
 import { ROUTES } from "@shared/constants";
 
 const extensionDir = path.resolve(__dirname, "../../extension");
@@ -60,7 +60,7 @@ describe("the contract in config.js", () => {
 
   it("is repeated exactly in content/deliver.js, which cannot import it", () => {
     const source = read("content/deliver.js");
-    for (const value of [STORAGE_KEY, MESSAGES.request, MESSAGES.import, MESSAGES.received, ROUTES.newText]) {
+    for (const value of [STORAGE_KEY, MESSAGES.request, MESSAGES.import, MESSAGES.importFile, MESSAGES.received, ROUTES.newText]) {
       expect(source).toContain(`"${value}"`);
     }
     expect(IMPORT_MAX_AGE_MS).toBe(10 * 60 * 1000);
@@ -112,6 +112,27 @@ describe("sendToQuizTrick", () => {
     storage.data[APP_URL_OVERRIDE_KEY] = "https://evil.example";
     expect(await resolveAppUrl()).toBe(APP_URL);
   });
+
+  it("stores a Canvas file the same way, in place of any waiting text, then opens the editor", async () => {
+    await sendToQuizTrick({ title: "Week 5", body: "Cells divide." });
+    await sendFileToQuizTrick({ name: "Lecture 3.pptx", mimeType: "application/pdf", dataBase64: "AAEC", sourceUrl: "https://canvas.example/courses/1/files/3" });
+
+    const pending = storage.data[STORAGE_KEY] as Record<string, unknown>;
+    expect(pending).toMatchObject({
+      file: { name: "Lecture 3.pptx", mimeType: "application/pdf", dataBase64: "AAEC" },
+      sourceUrl: "https://canvas.example/courses/1/files/3",
+    });
+    expect(pending.body).toBeUndefined();
+    expect(typeof pending.capturedAt).toBe("number");
+    expect(createTab).toHaveBeenLastCalledWith({ url: `${APP_URL}${IMPORT_PATH}` });
+    expect(storage.set.mock.invocationCallOrder[1]).toBeLessThan(createTab.mock.invocationCallOrder[1]);
+  });
+
+  it("refuses a file with no name or no contents, and opens no tab", async () => {
+    await expect(sendFileToQuizTrick({ name: " ", dataBase64: "AAEC" })).rejects.toThrow("no file");
+    await expect(sendFileToQuizTrick({ name: "a.pdf", dataBase64: "" })).rejects.toThrow("no file");
+    expect(createTab).not.toHaveBeenCalled();
+  });
 });
 
 describe("content/deliver.js", () => {
@@ -141,6 +162,20 @@ describe("content/deliver.js", () => {
     const { posted } = load(ROUTES.newText, fresh());
     await settle();
     expect(posted).toEqual([{ data: { type: MESSAGES.import, ...capture }, targetOrigin: ORIGIN }]);
+  });
+
+  it("offers a Canvas file as a file message, and throws a stale one away too", async () => {
+    const file = { name: "Lecture 3.pptx", mimeType: "application/pdf", dataBase64: "AAEC" };
+    const stored = (capturedAt: number) => ({ [STORAGE_KEY]: { file, sourceUrl: "https://canvas.example/f", capturedAt } });
+
+    const { posted } = load(ROUTES.newText, stored(Date.now()));
+    await settle();
+    expect(posted).toEqual([{ data: { type: MESSAGES.importFile, ...file, sourceUrl: "https://canvas.example/f" }, targetOrigin: ORIGIN }]);
+
+    const stale = load(ROUTES.newText, stored(Date.now() - IMPORT_MAX_AGE_MS - 1000));
+    await settle();
+    expect(stale.posted).toEqual([]);
+    expect(stale.storage.data[STORAGE_KEY]).toBeUndefined();
   });
 
   it("stays quiet on other pages, then answers when the editor asks (signed-out flow)", async () => {

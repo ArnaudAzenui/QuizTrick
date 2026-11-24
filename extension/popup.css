@@ -159,6 +159,53 @@ body[data-state="long"] .count {
   cursor: not-allowed;
 }
 
+.files {
+  margin: 0;
+}
+
+.files-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgb(var(--qt-muted));
+}
+
+.file-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.file {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgb(var(--qt-border));
+  border-radius: 0.875rem;
+  background: rgb(var(--qt-surface));
+  color: rgb(var(--qt-fg));
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.file:hover:not(:disabled) {
+  border-color: rgb(var(--qt-primary));
+}
+
+.file:focus-visible {
+  outline: 2px solid rgb(var(--qt-primary));
+  outline-offset: 2px;
+}
+
+.file:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .target {
   margin: 0;
   font-size: 12px;
