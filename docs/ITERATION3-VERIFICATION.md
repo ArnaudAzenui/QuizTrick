@@ -80,6 +80,17 @@ As A, note one of each: a text id, a quiz id, an attempt id, a task id. Then as 
 | C5.2 | Console: `fetch('/api/nonsense').then(r => r.status)` | `404` in the JSON envelope, no stack trace. | | ☐ |
 | C5.3 | Console: `fetch('/api/texts',{method:'POST',body:'{nope'}).then(r => r.status)` | `400`, no stack trace in the body. | | ☐ |
 
+### C6 Document uploads and practice checks (routes added in PR #31)
+
+| # | Do | Expected | Result | OK |
+|---|---|---|---|---|
+| C6.1 | Log out. Console: `fetch('/api/texts/extract',{method:'POST',body:new FormData()}).then(r => r.status)` and `fetch('/api/quizzes/11111111-1111-4111-8111-111111111111/check',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({questionId:'22222222-2222-4222-8222-222222222222',response:'0'})}).then(r => r.status)` | `401` for both. (The check route validates the body and the id shape before it looks at the session, so a malformed call answers `400` or `404` signed out; neither reveals anything.) | | ☐ |
+| C6.2 | Add study text: upload a `.docx`, `.pdf` or `.pptx` over 4 MB. | Rejected with the 4 MB message; nothing is parsed. | | ☐ |
+| C6.3 | Rename any `.txt` or image to `notes.pdf` and upload it. | "We couldn't read that document"; the text already in the editor is untouched. | | ☐ |
+| C6.4 | Console, as B: `fetch('/api/quizzes/<A's quiz id>/check',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({questionId:'<any uuid>',response:'0'})}).then(r => r.status)` | `404`. | | ☐ |
+| C6.5 | Start a quiz in practice mode, check one answer. Network → the `check` response. | Only `isCorrect` and `hint`; no `correctOption` or `expectedAnswer`. | | ☐ |
+| C6.6 | Upload the same small `.pdf` 30 times within an hour, then once more. | The 31st shows "You can upload up to 30 documents an hour"; Network shows `429`. Pasting text still works. | | ☐ |
+
 ## Findings
 
 Anything that did not match. One line each: row id, what happened, who fixes it.

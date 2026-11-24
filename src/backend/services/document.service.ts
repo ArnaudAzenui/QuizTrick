@@ -1,12 +1,40 @@
 import { OfficeParser } from "officeparser";
 import { AppError } from "@backend/lib/errors";
+import { createAdminClient } from "@backend/supabase/admin";
+import { LIMITS } from "@shared/constants";
 import { cleanStudyText } from "@shared/utils/text";
 import { studyFileExtension, validateStudyFile } from "@shared/utils/study-file";
 
+/**
+ * SEC-6. Counted, then logged, before the file is parsed, so every parse
+ * attempt uses up quota whether or not the document turns out to be readable.
+ */
+async function enforceRateLimit(userId: string): Promise<void> {
+  const admin = createAdminClient();
+  const { data: recent, error: countError } = await admin.rpc("count_recent_extractions", { p_owner_id: userId });
+  if (countError) {
+    console.error("[documents] count_recent_extractions failed", countError.code, countError.message);
+    throw AppError.internal();
+  }
+  if (typeof recent === "number" && recent >= LIMITS.EXTRACTIONS_PER_HOUR) {
+    throw AppError.rateLimited(
+      `You can upload up to ${LIMITS.EXTRACTIONS_PER_HOUR} documents an hour. Please wait a little, or paste the text instead.`,
+    );
+  }
+
+  const { error: logError } = await admin.from("extraction_requests").insert({ owner_id: userId });
+  if (logError) {
+    console.error("[documents] could not record extraction request", logError.code, logError.message);
+    throw AppError.internal();
+  }
+}
+
 /** Extract in memory: the original upload is never stored or sent to an AI service. */
-export async function extractStudyDocument(file: File): Promise<{ text: string }> {
+export async function extractStudyDocument(userId: string, file: File): Promise<{ text: string }> {
   const validation = validateStudyFile(file);
   if (!validation.ok) throw AppError.validation(validation.message);
+  // After validation, so a wrong file type or an oversized file costs no quota.
+  await enforceRateLimit(userId);
   const extension = studyFileExtension(file.name);
   const buffer = Buffer.from(await file.arrayBuffer());
   let text: string;

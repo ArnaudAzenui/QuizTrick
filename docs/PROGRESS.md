@@ -55,6 +55,19 @@ Merged: F-6 (Fardin, #33, Nov 12) and I-5 (Isaiah, #34, Nov 14), both reviewed a
 
 Still open for the extension: Part C, the run on a real Canvas page in Chrome and Edge, and the demo. Housekeeping: delete the merged `feat/ext-extract`, `feat/ext-import-editor` and `docs/pr31-record` branches.
 
+## Status update — Nov 23, 2026 (last code gap closed)
+
+Merged since Nov 14: #36 (Hillary, Nov 16): the popup's Send does nothing while the button is disabled, and the popup still shows its preview when the app address can't be read. `main` has no open PRs and no leftover branches.
+
+Closed from the PR #31 follow-ups, in `feat/extract-rate-limit` (Arnaud):
+- `POST /api/texts/extract` is limited to 30 parses an hour per user (SEC-6), the same way generation is limited: migration 0004 adds `extraction_requests` and `count_recent_extractions`. **Apply 0004 on production before this deploys**, or every Word/PDF/PowerPoint upload answers 500.
+- Both PR #31 routes are in `docs/API.md`, with the note that `check` reveals right/wrong before submission.
+- `docs/ITERATION3-VERIFICATION.md` Part C has a C6 block for the two routes.
+
+Still a team decision: whether an attempt records practice vs standard mode. Arnaud's recommendation is not to build it: it needs a migration and a History change in Week 14 for something the SOW never asked for, and the final report can state that a score does not say whether hints were used.
+
+Unless the team decides otherwise on that, the code is feature-complete. Everything left is testing and documents: Part C of `docs/EXTENSION-INTEGRATION.md`, the 37 rows of `docs/ITERATION3-VERIFICATION.md`, I-3, I-4, H-2, H-3, H-6, F-5, then section 6.
+
 ## 1. What is done (per WBS)
 
 | WBS | Element | State |

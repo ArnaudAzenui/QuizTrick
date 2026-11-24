@@ -6,7 +6,7 @@ Plain text stays in the browser until saved. Office and PDF files are posted to 
 
 Extracted text is shown for review before saving. The 200–20,000 character study-text limits still apply; longer documents can be trimmed to the relevant section. Nothing is silently truncated. Formatting, diagrams, and images are not imported. OCR is not enabled, so scanned PDFs and image-only slides need text recognition first. Password-protected or damaged files show an actionable error and leave the existing editor text intact.
 
-The endpoint bounds the streamed request and validates file extensions, sizes, and binary signatures. Office decompression and XML limits constrain expanded files; parsing has a 20-second abort signal. The route uses the Node runtime and officeparser is externalized for Next server builds. Deploy with Node 22.13 or newer, as required by the parser.
+The endpoint bounds the streamed request and validates file extensions, sizes, and binary signatures. Office decompression and XML limits constrain expanded files; parsing has a 20-second abort signal. Each user can parse 30 documents an hour (SEC-6, migration 0004); past that the upload answers 429 and the editor suggests pasting the text instead. The route uses the Node runtime and officeparser is externalized for Next server builds. Deploy with Node 22.13 or newer, as required by the parser.
 
 Tests use small real DOCX, PPTX, and PDF fixtures as well as invalid-file, upload-size, and authentication cases.
 
