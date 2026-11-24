@@ -39,6 +39,8 @@ export const LIMITS = {
   GENERATION_MAX_RETRIES: 2,
   /** SEC-6 */
   GENERATIONS_PER_HOUR: 20,
+  /** SEC-6. Document parses (POST /api/texts/extract) per user per hour. */
+  EXTRACTIONS_PER_HOUR: 30,
 
   /** FR-6.x / SRS §3.1 study task */
   TASK_SUBJECT_MIN: 1,

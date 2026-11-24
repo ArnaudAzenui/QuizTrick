@@ -17,6 +17,15 @@ it("authenticates before extracting an uploaded file", async () => {
   expect(response.status).toBe(200);
   expect(await response.json()).toEqual({ ok: true, data: { text: "Extracted notes" } });
   expect(mocks.user.mock.invocationCallOrder[0]).toBeLessThan(mocks.extract.mock.invocationCallOrder[0]);
+  expect(mocks.extract.mock.calls[0][0]).toBe("user1");
+});
+it("answers 429 with the service's message when the hourly upload limit is reached", async () => {
+  mocks.extract.mockRejectedValue(AppError.rateLimited("You can upload up to 30 documents an hour."));
+  const form = new FormData();
+  form.append("file", new File(["test"], "notes.pdf"));
+  const response = await POST(new Request("http://localhost/api/texts/extract", { method: "POST", body: form }), undefined);
+  expect(response.status).toBe(429);
+  expect(await response.json()).toEqual({ ok: false, error: { code: "RATE_LIMITED", message: "You can upload up to 30 documents an hour." } });
 });
 it("rejects unauthenticated uploads before extraction", async () => {
   mocks.user.mockRejectedValue(AppError.notFound("Session"));

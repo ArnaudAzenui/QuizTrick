@@ -9,6 +9,7 @@ import { env } from "../lib/env";
  *   - reading/writing `questions` (answer keys, SDD decision 2)
  *   - `submit_attempt` RPC (NFR-R3)
  *   - `generation_requests` / `count_recent_generations` (SEC-6)
+ *   - `extraction_requests` / `count_recent_extractions` (SEC-6)
  * Never import this from client code.
  */
 let cached: SupabaseClient | null = null;

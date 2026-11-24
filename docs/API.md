@@ -47,6 +47,9 @@ Only `displayName` is writable. Changing an email or password is a Supabase auth
 | `GET /api/texts/:id` | — | `StudyText` | |
 | `GET /api/texts/:id/quizzes` | — | `Quiz[]` newest first | FR-3.7 |
 | `DELETE /api/texts/:id` | — | `{ deleted: true }` (cascades to its quizzes, questions and attempts — score history included) | SEC-10 |
+| `POST /api/texts/extract` | `multipart/form-data` with one `file` field: `.docx`, `.pdf` or `.pptx` up to 4 MB (`.txt` up to 100 KB is accepted, though the browser reads those itself) | `{ text }` — the cleaned text, for review in the editor. Nothing is saved | FR-2.2, SEC-6 |
+
+`extract` is the one route that does not take JSON. It parses the file in server memory and stores neither the upload nor the text; saving is still `POST /api/texts`, which applies the 200–20,000 character limits, so a long document comes back whole and is trimmed in the editor. `VALIDATION` covers a missing file, a wrong type, an oversized upload (the stream is cut off at the limit even without `Content-Length`), a file whose contents don't match its extension, a damaged or password-protected document, and one with no readable text (scanned PDFs: there is no OCR). `RATE_LIMITED` after 30 parses an hour per user: a file that passes the type and size checks counts whether or not it turns out to be readable, one that fails them does not. Needs migration 0004.
 
 There is no edit endpoint: a saved text is immutable, because quizzes generated from it would otherwise stop matching the material they were written from. Deleting a text deletes that material's score history with it — worth a confirmation step in the UI.
 
@@ -67,8 +70,11 @@ Optional `questionMix` counts must be nonnegative integers adding up to `questio
 | `GET /api/quizzes/:id` | — | `QuizForTaking` — `questions[]` in `position` order, **without** `correctOption` / `expectedAnswer`. Another user's quiz is `NOT_FOUND`, not `FORBIDDEN`, so the API never confirms that an id exists | FR-4.1 |
 | `DELETE /api/quizzes/:id` | — | `{ deleted: true }` (cascades to its questions and attempts — the quiz leaves score history). Another user's quiz is `NOT_FOUND` | SEC-10 |
 | `POST /api/quizzes/:id/attempts` | `{ startedAt?, answers: [{ questionId, response }] }` — MCQ response is the option index as a string (`"0"`–`"3"`); short answer ≤ 200 chars, compared to the key after lower-casing, trimming and dropping trailing punctuation, so `"Paris."` matches `paris`; each `questionId` at most once (case-insensitive). Unanswered questions are graded as incorrect. A `startedAt` in the future is ignored rather than rejected, so a wrong device clock can't cost a student their attempt. | `Attempt` (201) with `score` 0–100 | FR-4.3–4.5, NFR-R3 |
+| `POST /api/quizzes/:id/check` | `{ questionId, response }` — `response` as in an attempt: the option index as a string, or a short answer of 1–200 chars | `{ isCorrect, hint }`. Nothing is stored. Another user's quiz, or a `questionId` that is not in this quiz, is `NOT_FOUND` | FR-4.3 |
 | `GET /api/attempts/:id` | — | `AttemptReview` — the attempt, its quiz, and one item per question in `position` order with the full question (answer key included), the student's `response` (`""` if unanswered) and `isCorrect`. Another user's attempt is `NOT_FOUND` | FR-4.6 |
 | `GET /api/history` | — | `HistoryEntry[]` newest first, `isBest` flag and `durationSeconds` for time spent on each quiz attempt (null if timestamps are unavailable) | FR-5.2, FR-5.4 |
+
+`check` backs practice mode ("Multiple attempts and hints" on the quiz setup screen). It tells the student whether an answer is right **before** the quiz is submitted, so a practice run can reach 100% by trying each option; that is the point of the mode, and it is why the answer key itself is never sent: the hint rules out one wrong option, or gives the first letter and word count of a short answer. The route does not know which mode the quiz was started in, so any owner can call it for any of their quizzes, and a recorded attempt does not say whether hints were used.
 
 ## Tasks
 

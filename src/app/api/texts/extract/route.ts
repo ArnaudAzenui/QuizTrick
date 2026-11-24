@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 export const POST = handle(async request => {
-  await getCurrentUser();
+  const user = await getCurrentUser();
   const contentType = request.headers.get("content-type") ?? "";
   if (!contentType.startsWith("multipart/form-data;")) throw AppError.validation("Choose a document to upload.");
   // Bound the actual stream, including requests without Content-Length.
@@ -38,5 +38,5 @@ export const POST = handle(async request => {
   }
   const file = form.get("file");
   if (!(file instanceof File)) throw AppError.validation("Choose a document to upload.");
-  return ok(await extractStudyDocument(file));
+  return ok(await extractStudyDocument(user.userId, file));
 });

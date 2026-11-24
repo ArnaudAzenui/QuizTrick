@@ -333,6 +333,10 @@ select qt_test.check((select count(*) from public.questions) = 0, 'answer keys a
 select qt_test.check((select count(*) from public.attempts) = 0, 'a user sees none of another user''s attempts');
 select qt_test.check((select count(*) from public.answer_records) = 0, 'a user sees none of another user''s answers');
 select qt_test.check((select count(*) from public.generation_requests) = 0, 'the rate-limit log is server-only (SEC-6)');
+select qt_test.check_err($$select count(*) from public.extraction_requests$$,
+  '42501', 'the upload rate-limit log is not readable by a client (SEC-6)');
+select qt_test.check_err(format($$insert into public.extraction_requests (owner_id) values (%L)$$, :'B'),
+  '42501', 'a user cannot write to the upload rate-limit log');
 
 select qt_test.check_err(format($$insert into public.study_texts (owner_id, body, char_count) values (%L, repeat('z', 250), 250)$$, :'A'),
   '42501', 'a user cannot create a text owned by somebody else');
@@ -349,6 +353,8 @@ select qt_test.check_err(format($$select public.create_quiz_with_questions(%L, %
   '42501', 'create_quiz_with_questions is not callable by a client');
 select qt_test.check_err(format($$select public.count_recent_generations(%L)$$, :'B'),
   '42501', 'count_recent_generations is not callable by a client');
+select qt_test.check_err(format($$select public.count_recent_extractions(%L)$$, :'B'),
+  '42501', 'count_recent_extractions is not callable by a client');
 
 select qt_test.check(qt_test.affected(format($$delete from public.quizzes where id = %L$$, :'quiz_id')) = 0,
   'a user cannot delete another user''s quiz');
@@ -370,6 +376,10 @@ select qt_test.check(not has_function_privilege('authenticated', 'public.set_upd
   'the updated_at trigger function is not callable by a client');
 select qt_test.check(has_function_privilege('service_role', 'public.submit_attempt(uuid, uuid, timestamptz, integer, jsonb)', 'execute'),
   'the server can still call submit_attempt');
+select qt_test.check(has_function_privilege('service_role', 'public.count_recent_extractions(uuid, interval)', 'execute')
+                 and has_table_privilege('service_role', 'public.extraction_requests', 'insert')
+                 and has_sequence_privilege('service_role', 'public.extraction_requests_id_seq', 'usage'),
+  'the server can still count and log document uploads (SEC-6)');
 
 \echo
 \echo '=== 11. Deletion cascades (SEC-10) ==='
