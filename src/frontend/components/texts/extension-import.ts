@@ -7,6 +7,7 @@ import { LIMITS } from "@shared/constants";
  * editor talk over window.postMessage on /texts/new?from=extension:
  *   editor -> extension   { type: "quiztrick:import-request" }
  *   extension -> editor   { type: "quiztrick:import", title, body, sourceUrl }
+ *   extension -> editor   { type: "quiztrick:import-file", name, mimeType, dataBase64, sourceUrl }
  *   editor -> extension   { type: "quiztrick:import-received" }
  *
  * Everything here is a pure function so the rules can be tested without a
@@ -17,6 +18,7 @@ import { LIMITS } from "@shared/constants";
 export const IMPORT_MESSAGES = {
   request: "quiztrick:import-request",
   import: "quiztrick:import",
+  importFile: "quiztrick:import-file",
   received: "quiztrick:import-received",
 } as const;
 
@@ -72,4 +74,49 @@ export function applyImport(
   if (incoming.body.trim().length === 0) return null;
   const title = current.title.trim() ? current.title : clampTitle(incoming.title);
   return { title, body: incoming.body };
+}
+
+/** A Canvas file the extension handed over, still base64, after its checks passed. */
+export type ExtensionFileImport = { name: string; mimeType: string; dataBase64: string; sourceUrl: string };
+
+/** Shown in the editor's file-note area after an imported file has been read. */
+export function importFileNote(name: string): string {
+  return `Imported ${name} from Canvas. Review it below before saving.`;
+}
+
+/** Longest base64 text a file within the upload limit can produce; anything longer is not decoded. */
+const FILE_BASE64_MAX = Math.ceil(LIMITS.DOCUMENT_FILE_MAX_BYTES / 3) * 4;
+const FILE_NAME_MAX = 255;
+
+/**
+ * Returns the file import when the message is a well-formed one from this very
+ * page, otherwise null: same rules as parseImportMessage(), plus a file name
+ * with no path in it and base64 no longer than the upload limit allows.
+ */
+export function parseImportFileMessage(event: ImportEvent, self: { window: unknown; origin: string }): ExtensionFileImport | null {
+  if (event.source !== self.window || event.origin !== self.origin) return null;
+  const data = event.data;
+  if (typeof data !== "object" || data === null) return null;
+  const { type, name, mimeType, dataBase64, sourceUrl } = data as Record<string, unknown>;
+  if (type !== IMPORT_MESSAGES.importFile) return null;
+  if (typeof name !== "string" || typeof mimeType !== "string" || typeof dataBase64 !== "string" || typeof sourceUrl !== "string") return null;
+  const cleanName = name.trim();
+  if (!cleanName || cleanName.length > FILE_NAME_MAX || /[\\/\u0000-\u001f]/u.test(cleanName)) return null;
+  if (!dataBase64 || dataBase64.length > FILE_BASE64_MAX || !/^[A-Za-z0-9+/]+={0,2}$/.test(dataBase64)) return null;
+  return { name: cleanName, mimeType, dataBase64, sourceUrl };
+}
+
+/**
+ * Turns an imported file back into a File, so the editor can read it exactly
+ * as if the student had chosen it. Null when the base64 does not decode.
+ */
+export function fileFromImport(incoming: ExtensionFileImport): File | null {
+  try {
+    const binary = atob(incoming.dataBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new File([bytes], incoming.name, { type: incoming.mimeType });
+  } catch {
+    return null;
+  }
 }

@@ -11,7 +11,16 @@ import { validateStudyText } from "@shared/utils/text";
 import { assessContentQuality } from "@shared/utils/content-quality";
 import { STUDY_FILE_ACCEPT } from "@shared/utils/study-file";
 import { titleFromFileName, validateTextFile } from "./text-file";
-import { applyImport, IMPORT_MESSAGES, IMPORT_NOTE, isExtensionImportUrl, parseImportMessage } from "./extension-import";
+import {
+  applyImport,
+  fileFromImport,
+  IMPORT_MESSAGES,
+  IMPORT_NOTE,
+  importFileNote,
+  isExtensionImportUrl,
+  parseImportFileMessage,
+  parseImportMessage,
+} from "./extension-import";
 
 /**
  * Paste or upload study text and save it (FR-2.1 - FR-2.7, WBS 1.4.2).
@@ -23,7 +32,9 @@ import { applyImport, IMPORT_MESSAGES, IMPORT_NOTE, isExtensionImportUrl, parseI
  * Opened by the Canvas extension (/texts/new?from=extension), the editor asks
  * the extension for the captured text and fills in the form with it (F-6). It
  * never saves by itself and never replaces text the student already typed.
- * The checks live in ./extension-import.ts.
+ * A Word, PDF or PowerPoint file the extension downloaded from Canvas arrives
+ * the same way and is read exactly like a file chosen here. The checks live in
+ * ./extension-import.ts.
  */
 export function StudyTextEditor() {
   const router = useRouter();
@@ -47,7 +58,19 @@ export function StudyTextEditor() {
   useEffect(() => {
     if (!isExtensionImportUrl(window.location.search)) return;
     const origin = window.location.origin;
+    // Both sides speak first, so the same file can be offered twice: read it once.
+    let fileTaken = false;
     const onMessage = (event: MessageEvent) => {
+      const incomingFile = parseImportFileMessage(event, { window, origin });
+      if (incomingFile) {
+        if (fileTaken || formRef.current.body.trim().length > 0) return;
+        fileTaken = true;
+        window.postMessage({ type: IMPORT_MESSAGES.received }, origin);
+        const file = fileFromImport(incomingFile);
+        if (file) void loadFileRef.current(file, importFileNote(file.name));
+        else setFileError("We couldn't read the file from Canvas. Download it there and upload it here instead.");
+        return;
+      }
       const incoming = parseImportMessage(event, { window, origin });
       if (!incoming) return;
       const next = applyImport(formRef.current, incoming);
@@ -72,16 +95,13 @@ export function StudyTextEditor() {
   const tooLong = check.charCount > LIMITS.TEXT_MAX_CHARS;
   const remainingToMin = Math.max(0, LIMITS.TEXT_MIN_CHARS - check.charCount);
 
-  async function onFile(event: ChangeEvent<HTMLInputElement>) {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
+  /** Reads a chosen or imported file into the form, through the same checks either way. */
+  async function loadFile(file: File, note = `Loaded ${file.name}. Review it below before saving.`) {
     setFileError(undefined);
     setFileNote(undefined);
-    if (!file) return;
     const result = validateTextFile(file);
     if (!result.ok) {
       setFileError(result.message);
-      event.target.value = "";
       return;
     }
     setReading(true);
@@ -99,15 +119,31 @@ export function StudyTextEditor() {
       }
       setBody(text);
       setBodyError(undefined);
-      if (!title.trim()) setTitle(titleFromFileName(file.name));
-      setFileNote(`Loaded ${file.name}. Review it below before saving.`);
+      if (!formRef.current.title.trim()) setTitle(titleFromFileName(file.name));
+      setFileNote(note);
     } catch (err) {
       setFileError(errorMessage(err, "We couldn't read that file. Try again, or paste the text instead."));
     } finally {
-      // Lets the same file be chosen again after an edit or a clear.
-      input.value = "";
       setReading(false);
     }
+  }
+  // The latest loadFile for the message listener, which is set up once.
+  const loadFileRef = useRef(loadFile);
+  useEffect(() => {
+    loadFileRef.current = loadFile;
+  });
+
+  async function onFile(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) {
+      setFileError(undefined);
+      setFileNote(undefined);
+      return;
+    }
+    await loadFile(file);
+    // Lets the same file be chosen again after an edit or a clear.
+    input.value = "";
   }
 
   function clear() {

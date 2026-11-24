@@ -113,7 +113,9 @@ describe("popup files agree with each other (A2.3, A2.5, B1)", () => {
 
   it("popup.js reads the real extractor and the handoff, and the stub is gone", () => {
     expect(js).toContain('from "./lib/extract.js"');
-    expect(js).toContain("func: extractFromPage");
+    expect(js).toContain("runInTab(tabId, extractFromPage)");
+    expect(js).toContain('from "./lib/canvas-files.js"');
+    expect(js).toContain("sendFileToQuizTrick(");
     expect(js).toContain('from "./lib/handoff.js"');
     expect(js).toContain("sendToQuizTrick(");
     expect(js).not.toContain("SAMPLE_TEXT");

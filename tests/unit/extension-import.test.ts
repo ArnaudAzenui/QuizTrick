@@ -3,6 +3,9 @@ import { MESSAGES } from "../../extension/config.js";
 import {
   applyImport,
   clampTitle,
+  fileFromImport,
+  importFileNote,
+  parseImportFileMessage,
   IMPORT_MESSAGES,
   IMPORT_NOTE,
   isExtensionImportUrl,
@@ -22,7 +25,7 @@ const event = (data: unknown, over: Partial<{ source: unknown; origin: string }>
 });
 
 describe("message types match the extension (A3.8)", () => {
-  it("uses the same three type strings as extension/config.js", () => {
+  it("uses the same type strings as extension/config.js", () => {
     expect(IMPORT_MESSAGES).toEqual(MESSAGES);
   });
 
@@ -106,5 +109,57 @@ describe("applyImport (A3.4, A3.5, A3.9)", () => {
 
   it("drops an empty import", () => {
     expect(applyImport({ title: "", body: "" }, { ...incoming, body: "   " })).toBeNull();
+  });
+});
+
+describe("a Canvas file from the extension", () => {
+  const goodFile = { type: "quiztrick:import-file", name: "Lecture 3.pptx", mimeType: "application/pdf", dataBase64: "AAEC/w==", sourceUrl: "https://uncp.instructure.com/courses/1/files/3" };
+
+  it("accepts a well-formed file message from this page and trims the name", () => {
+    expect(parseImportFileMessage(event({ ...goodFile, name: "  Lecture 3.pptx " }), self)).toEqual({
+      name: "Lecture 3.pptx",
+      mimeType: "application/pdf",
+      dataBase64: "AAEC/w==",
+      sourceUrl: goodFile.sourceUrl,
+    });
+  });
+
+  it("ignores another window, another origin, and the text message type", () => {
+    expect(parseImportFileMessage(event(goodFile, { source: {} }), self)).toBeNull();
+    expect(parseImportFileMessage(event(goodFile, { origin: "https://evil.example" }), self)).toBeNull();
+    expect(parseImportFileMessage(event(good), self)).toBeNull();
+    expect(parseImportMessage(event(goodFile), self)).toBeNull();
+  });
+
+  it.each([
+    ["a missing field", { ...goodFile, mimeType: undefined }],
+    ["an empty name", { ...goodFile, name: "   " }],
+    ["a name with a path in it", { ...goodFile, name: "../../etc/passwd.pdf" }],
+    ["a name over 255 characters", { ...goodFile, name: `${"a".repeat(252)}.pdf` }],
+    ["empty contents", { ...goodFile, dataBase64: "" }],
+    ["contents that are not base64", { ...goodFile, dataBase64: "<script>" }],
+    ["more base64 than a 4 MB file can produce", { ...goodFile, dataBase64: "A".repeat(Math.ceil(LIMITS.DOCUMENT_FILE_MAX_BYTES / 3) * 4 + 4) }],
+  ])("drops %s", (_label, data) => {
+    expect(parseImportFileMessage(event(data), self)).toBeNull();
+  });
+
+  it("accepts exactly as much base64 as a file at the limit produces", () => {
+    const dataBase64 = "A".repeat(Math.ceil(LIMITS.DOCUMENT_FILE_MAX_BYTES / 3) * 4);
+    expect(parseImportFileMessage(event({ ...goodFile, dataBase64 }), self)).not.toBeNull();
+  });
+
+  it("turns the base64 back into the same bytes, name and type", async () => {
+    const file = fileFromImport({ name: "Lecture 3.pptx", mimeType: "application/pdf", dataBase64: "AAEC/w==", sourceUrl: "" })!;
+    expect(file.name).toBe("Lecture 3.pptx");
+    expect(file.type).toBe("application/pdf");
+    expect(new Uint8Array(await file.arrayBuffer())).toEqual(new Uint8Array([0, 1, 2, 255]));
+  });
+
+  it("returns null when the base64 does not decode", () => {
+    expect(fileFromImport({ name: "a.pdf", mimeType: "", dataBase64: "A", sourceUrl: "" })).toBeNull();
+  });
+
+  it("says where the file came from", () => {
+    expect(importFileNote("Lecture 3.pptx")).toBe("Imported Lecture 3.pptx from Canvas. Review it below before saving.");
   });
 });

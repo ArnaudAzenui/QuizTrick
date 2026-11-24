@@ -68,6 +68,12 @@ Still a team decision: whether an attempt records practice vs standard mode. Arn
 
 Unless the team decides otherwise on that, the code is feature-complete. Everything left is testing and documents: Part C of `docs/EXTENSION-INTEGRATION.md`, the 37 rows of `docs/ITERATION3-VERIFICATION.md`, I-3, I-4, H-2, H-3, H-6, F-5, then section 6.
 
+## Status update — Nov 23, 2026 (extension reads Canvas files)
+
+The Nov 7 scope said no PDFs or slides, because the app could not read them then. Since PR #31 it can, so the extension now sends Word, PDF and PowerPoint files too (`feat/ext-files`, Arnaud): the popup lists the files a Canvas page shows or links to, downloads the chosen one with the student's own Canvas session, and the editor reads it through the existing upload route. No new permission, no Canvas developer key, no API or database change. Still not doing: old `.doc`/`.ppt`, files over 4 MB, OCR, Firefox/Safari.
+
+Unit-tested against a saved Canvas page and a fake Canvas, **not yet run on real Canvas**. Rows C17–C25 in `docs/EXTENSION-INTEGRATION.md` are that run. The one step that can only be confirmed there is the download itself: Canvas redirects it to a separate file server, which must allow a request made from the Canvas page. If it refuses, the popup tells the student to download the file and upload it in QuizTrick.
+
 ## 1. What is done (per WBS)
 
 | WBS | Element | State |

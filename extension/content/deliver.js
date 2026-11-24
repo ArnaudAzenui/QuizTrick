@@ -1,5 +1,6 @@
 /**
- * Runs on every QuizTrick page and passes a captured text to the editor.
+ * Runs on every QuizTrick page and passes a captured text, or a file
+ * downloaded from Canvas, to the editor.
  *
  * It runs on the whole app, not only /texts/new, because a signed-out student
  * is sent to /login first and reaches the editor afterwards by a client-side
@@ -17,6 +18,7 @@
   const IMPORT_MAX_AGE_MS = 10 * 60 * 1000;
   const REQUEST = "quiztrick:import-request";
   const IMPORT = "quiztrick:import";
+  const IMPORT_FILE = "quiztrick:import-file";
   const RECEIVED = "quiztrick:import-received";
   const EDITOR_PATH = "/texts/new";
 
@@ -37,10 +39,11 @@
     try {
       const pending = await pendingImport();
       if (!pending) return;
-      window.postMessage(
-        { type: IMPORT, title: pending.title, body: pending.body, sourceUrl: pending.sourceUrl },
-        window.location.origin,
-      );
+      // A Canvas file travels as base64; the editor turns it back into a file.
+      const message = pending.file
+        ? { type: IMPORT_FILE, name: pending.file.name, mimeType: pending.file.mimeType, dataBase64: pending.file.dataBase64, sourceUrl: pending.sourceUrl }
+        : { type: IMPORT, title: pending.title, body: pending.body, sourceUrl: pending.sourceUrl };
+      window.postMessage(message, window.location.origin);
     } catch {
       // The extension was reloaded or removed while this tab stayed open, so
       // its storage is gone. There is nothing to deliver and nothing to report.
