@@ -111,6 +111,10 @@ export function withFiles(view, fileCount) {
   if (!fileCount || view.state === "unreadable" || view.canSend) return view;
   return {
     ...view,
+    // The few words on a file's page are Canvas's own ("Download notes.pdf"), not study text.
+    source: fileCount === 1 ? "Canvas file" : "Canvas files",
+    preview: "",
+    countLabel: "",
     message: fileCount === 1
       ? "This page has a file. Choose it below to send it to QuizTrick."
       : "This page has files. Choose one below to send it to QuizTrick.",

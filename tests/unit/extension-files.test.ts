@@ -103,7 +103,7 @@ describe("downloadCanvasFile", () => {
 
   /** A fake Canvas: answers by URL, records every request. */
   function canvas(routes: Record<string, () => Response | Promise<Response>>) {
-    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+    const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async (url) => {
       const route = routes[String(url).replace(origin, "")];
       if (!route) throw new TypeError("Failed to fetch");
       return route();
@@ -189,6 +189,8 @@ describe("what the popup says about files", () => {
     expect(view.message).toMatch(/choose it below/i);
     expect(view.tone).toBe("muted");
     expect(view.canSend).toBe(false);
+    // Canvas's "Download ..." line and its character count are not shown as if they were study text.
+    expect(view).toMatchObject({ source: "Canvas file", preview: "", countLabel: "" });
     expect(withFiles(short, 3).message).toMatch(/choose one below/i);
   });
 
